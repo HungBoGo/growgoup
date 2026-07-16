@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="en" data-doclang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PeakGlowUp — Business Model &amp; Client Selection</title>
+<meta name="description" content="Internal operating memo: industry deal-picker framework, financial model by scale, compensation structure, Year-1 growth target. EN / VI toggle.">
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  }
+
+  :root {
+    --bg: #F6F5EF;
+    --bg-raised: #FFFFFF;
+    --bg-sidebar: #F0EEE3;
+    --ink: #12231D;
+    --ink-soft: #3C463F;
+    --muted: #746E5C;
+    --line: #DAD5C6;
+    --line-soft: #E8E4D6;
+    --accent: #1F6B52;
+    --accent-strong: #14432F;
+    --accent-soft: #E3EEE7;
+    --warn: #A85A24;
+    --warn-soft: #F3E6D8;
+    --danger: #A13A3A;
+    --danger-soft: #F4E1DF;
+    --info: #2B5A78;
+    --info-soft: #E1EAEF;
+    --shadow: 0 1px 2px rgba(18,35,29,0.06), 0 6px 20px -8px rgba(18,35,29,0.12);
+    --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'Cascadia Code', 'SF Mono', Consolas, 'Roboto Mono', ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E1613; --bg-raised: #141F1B; --bg-sidebar: #0B120F;
+      --ink: #EAE7DC; --ink-soft: #C8C4B6; --muted: #93927F;
+      --line: #263631; --line-soft: #1C2A25;
+      --accent: #59B394; --accent-strong: #7FCBAF; --accent-soft: #16261F;
+      --warn: #E0965A; --warn-soft: #2E2115;
+      --danger: #E08383; --danger-soft: #2E1B1B;
+      --info: #7FB1D1; --info-soft: #16232B;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px -8px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E1613; --bg-raised: #141F1B; --bg-sidebar: #0B120F;
+    --ink: #EAE7DC; --ink-soft: #C8C4B6; --muted: #93927F;
+    --line: #263631; --line-soft: #1C2A25;
+    --accent: #59B394; --accent-strong: #7FCBAF; --accent-soft: #16261F;
+    --warn: #E0965A; --warn-soft: #2E2115;
+    --danger: #E08383; --danger-soft: #2E1B1B;
+    --info: #7FB1D1; --info-soft: #16232B;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px -8px rgba(0,0,0,0.5);
+  }
+  :root[data-theme="light"] {
+    --bg: #F6F5EF; --bg-raised: #FFFFFF; --bg-sidebar: #F0EEE3;
+    --ink: #12231D; --ink-soft: #3C463F; --muted: #746E5C;
+    --line: #DAD5C6; --line-soft: #E8E4D6;
+    --accent: #1F6B52; --accent-strong: #14432F; --accent-soft: #E3EEE7;
+    --warn: #A85A24; --warn-soft: #F3E6D8;
+    --danger: #A13A3A; --danger-soft: #F4E1DF;
+    --info: #2B5A78; --info-soft: #E1EAEF;
+    --shadow: 0 1px 2px rgba(18,35,29,0.06), 0 6px 20px -8px rgba(18,35,29,0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--accent-soft); color: var(--accent-strong); }
+  a { color: var(--accent-strong); }
+  @media (prefers-color-scheme: dark) { a { color: var(--accent); } }
+  :root[data-theme="dark"] a { color: var(--accent); }
+  :root[data-theme="light"] a { color: var(--accent-strong); }
+
+  .skip-link { position: absolute; left: -9999px; top: 0; z-index: 200; background: var(--accent); color: #fff; padding: 0.75rem 1.25rem; border-radius: 0 0 8px 0; }
+  .skip-link:focus { left: 0; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .shell { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+  @media (max-width: 900px) { .shell { grid-template-columns: 1fr; } }
+
+  .masthead { display: none; position: sticky; top: 0; z-index: 50; background: var(--bg-sidebar); border-bottom: 1px solid var(--line); padding: 0.85rem 1.25rem; align-items: center; justify-content: space-between; gap: 1rem; }
+  .masthead__title { font-family: var(--font-display); font-size: 1rem; font-weight: 600; }
+  .masthead__actions { display: flex; gap: 0.5rem; }
+  .btn-chip { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.03em; background: var(--bg-raised); border: 1px solid var(--line); color: var(--ink); padding: 0.42rem 0.7rem; border-radius: 6px; cursor: pointer; }
+  @media (max-width: 900px) { .masthead { display: flex; } }
+
+  .sidebar { background: var(--bg-sidebar); border-right: 1px solid var(--line); padding: 2rem 1.5rem 2rem; position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 1.75rem; }
+  @media (max-width: 900px) {
+    .sidebar { position: fixed; inset: 0; height: 100vh; z-index: 100; transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: var(--shadow); }
+    .sidebar.is-open { transform: translateX(0); }
+  }
+
+  .brand { display: flex; flex-direction: column; gap: 0.35rem; }
+  .brand__mark { width: 40px; height: 40px; border-radius: 9px; background: linear-gradient(155deg, var(--accent), var(--accent-strong)); display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
+  .brand__name { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; margin-top: 0.6rem; }
+  .brand__doc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+
+  .lang-switch { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; width: fit-content; }
+  .lang-switch button { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.4rem 0.75rem; border: none; background: var(--bg-raised); color: var(--muted); cursor: pointer; }
+  .lang-switch button.is-active { background: var(--accent); color: #fff; }
+
+  .toc-group { display: flex; flex-direction: column; gap: 0.15rem; }
+  .toc-label { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0 0 0.5rem 0.1rem; }
+  .toc-link { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.4rem 0.55rem; border-radius: 6px; text-decoration: none; color: var(--ink-soft); font-size: 0.88rem; transition: background 0.12s ease, color 0.12s ease; }
+  .toc-link:hover { background: var(--accent-soft); color: var(--accent-strong); }
+  .toc-link.is-active { background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; }
+  .toc-link__num { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); min-width: 1.9em; }
+  .toc-link.is-active .toc-link__num { color: var(--accent-strong); }
+  .sidebar__footer { margin-top: auto; font-size: 0.72rem; color: var(--muted); line-height: 1.6; }
+
+  main { min-width: 0; }
+  .doc { max-width: 800px; margin: 0 auto; padding: 3.5rem 1.75rem 8rem; }
+  @media (max-width: 640px) { .doc { padding: 2.25rem 1.1rem 6rem; } }
+
+  .doc-header { margin-bottom: 3rem; }
+  .doc-header__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.9rem; }
+  .doc-header__eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 0.6rem; }
+  .doc-header__eyebrow::before { content: ""; width: 22px; height: 1px; background: var(--accent); }
+  h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(2rem, 4.5vw, 2.7rem); line-height: 1.15; margin: 0 0 0.9rem; text-wrap: balance; letter-spacing: -0.01em; }
+  .doc-header__lede { font-size: 1.05rem; color: var(--ink-soft); max-width: 62ch; }
+
+  .meta-table { margin-top: 1.75rem; border-top: 1px solid var(--line); padding-top: 1.4rem; display: grid; gap: 0.85rem; }
+  .meta-row { display: grid; grid-template-columns: 160px 1fr; gap: 1rem; font-size: 0.88rem; }
+  @media (max-width: 560px) { .meta-row { grid-template-columns: 1fr; gap: 0.2rem; } }
+  .meta-row dt { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .meta-row dd { margin: 0; color: var(--ink-soft); }
+  .meta-row code { font-family: var(--font-mono); background: var(--accent-soft); color: var(--accent-strong); padding: 0.1em 0.4em; border-radius: 4px; font-size: 0.85em; }
+  /* ---- pricing cards (header) ---- */
+  .pkg-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.75rem 0 0.5rem; }
+  @media (max-width: 760px) { .pkg-cards { grid-template-columns: 1fr; } }
+  .pkg-card { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-raised); box-shadow: var(--shadow); padding: 1.15rem 1.25rem 1.3rem; display: flex; flex-direction: column; }
+  .pkg-card--full { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent), var(--shadow); }
+  .pkg-card__tag { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; color: var(--accent-strong); }
+  .pkg-card__fee { font-family: var(--font-display); font-size: 1.55rem; font-weight: 700; color: var(--ink); line-height: 1.15; margin: 0.35rem 0 0.1rem; }
+  .pkg-card__fee span.unit { font-size: 0.82rem; font-weight: 400; color: var(--muted); }
+  .pkg-card__sub { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.9rem; min-height: 1.2em; }
+  .pkg-card__facts { display: flex; flex-direction: column; gap: 0.7rem; border-top: 1px solid var(--line-soft); padding-top: 0.85rem; margin-top: auto; }
+  .pkg-card__fact { font-size: 0.85rem; color: var(--ink-soft); line-height: 1.45; }
+  .pkg-card__fact b { display: block; font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; margin-bottom: 0.15rem; }
+  .pkg-card__fact .hl { color: var(--accent-strong); font-weight: 700; }
+
+  section.part { margin-top: 4.5rem; scroll-margin-top: 2rem; }
+  .part-header { display: flex; align-items: baseline; gap: 0.9rem; margin-bottom: 0.4rem; }
+  .part-header__num { font-family: var(--font-mono); font-size: 0.95rem; color: var(--accent); font-weight: 600; }
+  h2 { font-family: var(--font-display); font-size: 1.65rem; font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.005em; }
+  .part-sub { color: var(--muted); font-size: 0.95rem; margin: 0.5rem 0 1.75rem; max-width: 62ch; }
+  h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; margin: 2.25rem 0 0.85rem; text-wrap: balance; }
+
+  p { margin: 0 0 1.05rem; max-width: 68ch; }
+  strong { color: var(--ink); font-weight: 700; }
+  .prose-narrow { max-width: 66ch; }
+
+  blockquote { margin: 1.75rem 0; padding: 1.1rem 1.4rem; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; font-family: var(--font-display); font-size: 1.08rem; font-style: italic; color: var(--accent-strong); }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code.formula { display: block; font-family: var(--font-mono); font-size: 0.9rem; background: var(--bg-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.25rem; margin: 1.25rem 0; overflow-x: auto; color: var(--ink-soft); white-space: pre; }
+  code.formula em.res { color: var(--accent-strong); font-weight: 700; font-style: normal; }
+
+  .callout { margin: 1.75rem 0; padding: 1.15rem 1.35rem 1.25rem; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-raised); box-shadow: var(--shadow); position: relative; padding-left: 1.6rem; }
+  .callout::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 4px 0 0 4px; }
+  .callout__label { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em; font-weight: 700; display: block; margin-bottom: 0.5rem; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout--finding::before { background: var(--accent); } .callout--finding .callout__label { color: var(--accent-strong); }
+  .callout--warn::before { background: var(--warn); } .callout--warn .callout__label { color: var(--warn); } .callout--warn { background: var(--warn-soft); }
+  .callout--risk::before { background: var(--danger); } .callout--risk .callout__label { color: var(--danger); } .callout--risk { background: var(--danger-soft); }
+  .callout--info::before { background: var(--info); } .callout--info .callout__label { color: var(--info); } .callout--info { background: var(--info-soft); }
+
+  .table-wrap { overflow-x: auto; margin: 1.5rem 0 2rem; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-raised); box-shadow: var(--shadow); }
+  .table-caption { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0.9rem 1.1rem 0; display: block; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; min-width: 480px; }
+  thead th { text-align: left; padding: 0.8rem 1rem; font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap; }
+  thead th.num, td.num { text-align: right; }
+  tbody td { padding: 0.72rem 1rem; border-bottom: 1px solid var(--line-soft); color: var(--ink-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--accent-soft); }
+  td.num, th.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  td.strong-cell { color: var(--ink); font-weight: 700; }
+  .row-highlight td { background: var(--accent-soft); font-weight: 600; color: var(--accent-strong); }
+  .row-highlight:hover td { background: var(--accent-soft); }
+
+  .chip { display: inline-flex; align-items: center; gap: 0.35em; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; padding: 0.2em 0.65em; border-radius: 999px; white-space: nowrap; letter-spacing: 0.02em; }
+  .chip--low { background: var(--accent-soft); color: var(--accent-strong); }
+  .chip--mid { background: var(--warn-soft); color: var(--warn); }
+  .chip--high { background: var(--danger-soft); color: var(--danger); }
+  .chip::before { content: "●"; font-size: 0.6em; }
+
+  .dossier { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-raised); box-shadow: var(--shadow); margin: 1.75rem 0; overflow: hidden; }
+  .dossier__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.35rem; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .dossier__name { font-family: var(--font-display); font-size: 1.12rem; font-weight: 600; }
+  .dossier__seq { font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted); }
+  .dossier__body { padding: 1.1rem 1.35rem 1.3rem; display: grid; gap: 0.9rem; }
+  .field { display: grid; grid-template-columns: 168px 1fr; gap: 1rem; font-size: 0.9rem; align-items: start; }
+  @media (max-width: 620px) { .field { grid-template-columns: 1fr; gap: 0.25rem; } }
+  .field dt { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding-top: 0.15rem; }
+  .field dd { margin: 0; color: var(--ink-soft); }
+  .dossier__verdict { margin: 0; padding: 0.85rem 1.35rem; border-top: 1px solid var(--line); background: var(--accent-soft); color: var(--accent-strong); font-size: 0.9rem; font-weight: 600; }
+  .dossier__verdict.is-hold { background: var(--warn-soft); color: var(--warn); }
+
+  .stat-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; margin: 1.75rem 0 0.4rem; }
+  @media (max-width: 620px) { .stat-strip { grid-template-columns: repeat(3, 1fr); } }
+  .stat-cell { border: 1px solid var(--line); border-radius: 10px; background: var(--bg-raised); padding: 0.9rem 0.7rem 0.75rem; text-align: center; box-shadow: var(--shadow); }
+  .stat-cell__n { font-family: var(--font-mono); font-size: 0.66rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-cell__v { font-family: var(--font-display); font-size: 1.45rem; font-weight: 700; color: var(--accent-strong); margin: 0.3rem 0 0.5rem; }
+  .stat-cell__bar { height: 5px; border-radius: 3px; background: var(--line-soft); overflow: hidden; }
+  .stat-cell__bar span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .stat-strip-caption { font-size: 0.8rem; color: var(--muted); margin: 0 0 2rem; }
+
+  .timeline { display: flex; flex-direction: column; gap: 0; margin: 1.75rem 0 2rem; }
+  .tl-item { display: grid; grid-template-columns: 24px 84px 1fr; gap: 1rem; position: relative; padding-bottom: 1.75rem; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item__rail { position: relative; display: flex; justify-content: center; }
+  .tl-item__rail::before { content: ""; position: absolute; top: 1.6rem; bottom: -1.75rem; width: 1px; background: var(--line); }
+  .tl-item:last-child .tl-item__rail::before { display: none; }
+  .tl-item__dot { width: 11px; height: 11px; border-radius: 50%; background: var(--accent); margin-top: 0.35rem; box-shadow: 0 0 0 4px var(--accent-soft); }
+  .tl-item__when { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); text-align: left; padding-top: 0.15rem; white-space: nowrap; }
+  .tl-item__title { font-weight: 700; margin: 0 0 0.35rem; color: var(--ink); }
+  .tl-item__desc { margin: 0; font-size: 0.92rem; color: var(--ink-soft); }
+  @media (max-width: 560px) { .tl-item { grid-template-columns: 20px 1fr; } .tl-item__when { display: none; } }
+
+  ul.plain, ol.plain { padding-left: 1.35rem; margin: 0 0 1.25rem; }
+  ul.plain li, ol.plain li { margin-bottom: 0.5rem; color: var(--ink-soft); }
+  ul.plain li::marker, ol.plain li::marker { color: var(--accent); }
+
+  .kv-list { display: grid; gap: 0.5rem; margin: 1.25rem 0; }
+  .kv-list div { display: grid; grid-template-columns: 1.5em 1fr; gap: 0.6rem; font-size: 0.92rem; align-items: start; color: var(--ink-soft); }
+  .kv-list div b { color: var(--accent); font-family: var(--font-mono); }
+
+  .footer-note { margin-top: 5rem; padding-top: 1.75rem; border-top: 1px solid var(--line); font-size: 0.82rem; color: var(--muted); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 5px; }
+
+  /* ---- language toggle: pure CSS, driven by data-doclang on <html>. We only ever ADD display:none
+         to the inactive language; the active one keeps its natural author/UA display. This avoids the
+         `revert` pitfall (which would collapse block elements like code.formula back to inline). ---- */
+  :root[data-doclang="vi"] [lang="en"] { display: none; }
+  :root:not([data-doclang="vi"]) [lang="vi"] { display: none; }
+</style>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div class="masthead">
+  <span class="masthead__title">PeakGlowUp — Business Model</span>
+  <div class="masthead__actions">
+    <button class="btn-chip" id="langToggleMobile" type="button">VI</button>
+    <button class="btn-chip" id="tocToggle" aria-expanded="false" aria-controls="sidebar" type="button">Menu</button>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Document navigation">
+    <div class="brand">
+      <div class="brand__mark" aria-hidden="true">P</div>
+      <div class="brand__name">PeakGlowUp</div>
+      <div class="brand__doc"><span lang="en">Business Model &amp; Effective Client Selection — v1.0</span><span lang="vi">Mô hình kinh doanh &amp; Lựa chọn khách hàng hiệu quả — v1.0</span></div>
+    </div>
+
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button id="langEn" class="is-active" type="button">EN</button>
+      <button id="langVi" type="button">VI</button>
+    </div>
+
+    <div class="toc-group">
+      <span class="toc-label"><span lang="en">Contents</span><span lang="vi">Mục lục</span></span>
+      <a class="toc-link" data-toc href="#part-1"><span class="toc-link__num">01</span><span lang="en">Industry deal-picker</span><span lang="vi">Khung chọn ngành</span></a>
+      <a class="toc-link" data-toc href="#part-2"><span class="toc-link__num">02</span><span lang="en">Financial model by scale</span><span lang="vi">Mô hình tài chính theo quy mô</span></a>
+      <a class="toc-link" data-toc href="#part-3"><span class="toc-link__num">03</span><span lang="en">Unverified assumptions</span><span lang="vi">Giả định chưa kiểm chứng</span></a>
+      <a class="toc-link" data-toc href="#part-3b"><span class="toc-link__num">03B</span><span lang="en">Pay, bonus &amp; retention</span><span lang="vi">Lương, thưởng, giữ chân</span></a>
+      <a class="toc-link" data-toc href="#part-3c"><span class="toc-link__num">03C</span><span lang="en">Founder &amp; Cofounder split</span><span lang="vi">Chia Founder &amp; Cofounder</span></a>
+      <a class="toc-link" data-toc href="#part-4"><span class="toc-link__num">04</span><span lang="en">Year-1 growth target</span><span lang="vi">Mục tiêu tăng trưởng năm 1</span></a>
+    </div>
+
+    <div class="sidebar__footer"><span lang="en">Internal operating/financial memo — not a product roadmap. Currency: AUD (AU$).</span><span lang="vi">Tài liệu vận hành/tài chính nội bộ — không phải roadmap sản phẩm. Đơn vị: AUD (AU$).</span></div>
+  </nav>
+
+  <main id="main">
+    <div class="doc">
+      <header class="doc-header">
+        <div class="doc-header__top">
+          <div class="doc-header__eyebrow"><span lang="en">Internal memo · v1.0</span><span lang="vi">Tài liệu nội bộ · v1.0</span></div>
+        </div>
+        <h1><span lang="en">Business model &amp; effective client selection</span><span lang="vi">Mô hình kinh doanh &amp; lựa chọn khách hàng hiệu quả</span></h1>
+        <p class="doc-header__lede"><span lang="en">Used to (1) decide which merchants to accept/reject by industry, (2) forecast headcount and profit by scale, (3) set the Year-1 growth target. This is not a product roadmap.</span><span lang="vi">Dùng để (1) quyết định nhận/từ chối merchant theo ngành, (2) dự báo nhân sự và lợi nhuận theo quy mô, (3) chốt mục tiêu tăng trưởng năm 1. Đây không phải roadmap sản phẩm.</span></p>
+
+        <dl class="meta-table">
+          <div class="meta-row"><dt><span lang="en">Currency</span><span lang="vi">Đơn vị tiền tệ</span></dt><dd><span lang="en">Everything in <strong>AUD (AU$)</strong> — merchants are Australian businesses, paying in AUD. VN team costs convert at <code>1 AUD = 18,300 VND</code> (real rate, July 2026).</span><span lang="vi">Toàn bộ tính bằng <strong>AUD (AU$)</strong> — merchant là doanh nghiệp Úc, trả bằng AUD. Đội VN quy đổi ở <code>1 AUD = 18.300 VND</code> (tỷ giá thực tế 07/2026).</span></dd></div>
+          <div class="meta-row"><dt><span lang="en">VN labor cost</span><span lang="vi">Chi phí lao động VN</span></dt><dd><span lang="en">Mandatory add-on of <strong>21.5% employer social insurance</strong> + 13th-month salary → total loading factor <code>~1.30×</code> on gross pay.</span><span lang="vi">Cộng bắt buộc <strong>21,5% BHXH/BHYT/BHTN</strong> phía doanh nghiệp + lương tháng 13 → hệ số tải <code>~1,30×</code> lên lương gross.</span></dd></div>
+        </dl>
+
+        <h2 style="margin-top:2.5rem;font-size:1.3rem;"><span lang="en">Pricing — three packages</span><span lang="vi">Cấu trúc giá — ba gói</span></h2>
+        <p style="margin:0.4rem 0 0;color:var(--muted);font-size:0.9rem;"><span lang="en">Full comparison in §2.1b, what PGU delivers &amp; commits to in §2.1c, commission logic in §2.1d, and which package fits which industry in §1.9.</span><span lang="vi">Bảng so sánh đầy đủ ở §2.1b, PGU làm gì &amp; cam kết gì ở §2.1c, logic hoa hồng ở §2.1d, và gói nào hợp ngành nào ở §1.9.</span></p>
+        <div class="pkg-cards">
+          <div class="pkg-card">
+            <span class="pkg-card__tag"><span lang="en">Package 1 · Fanpage</span><span lang="vi">Gói 1 · Fanpage</span></span>
+            <div class="pkg-card__fee">$1,000<span class="unit">/<span lang="en">mo</span><span lang="vi">tháng</span></span></div>
+            <div class="pkg-card__sub"><span lang="en">Flat. No commitment.</span><span lang="vi">Cố định. Không cam kết.</span></div>
+            <div class="pkg-card__facts">
+              <div class="pkg-card__fact"><b><span lang="en">Scope</span><span lang="vi">Nội dung</span></b><span lang="en">Fanpage management only — posts + auto-generated video.</span><span lang="vi">Chỉ quản lý fanpage — đăng bài + video tự động.</span></div>
+              <div class="pkg-card__fact"><b><span lang="en">20% commission on</span><span lang="vi">20% hoa hồng trên</span></b><span lang="en">— none.</span><span lang="vi">— không có.</span></div>
+              <div class="pkg-card__fact"><b><span lang="en">Booking commitment</span><span lang="vi">Cam kết booking</span></b><span lang="en">None.</span><span lang="vi">Không.</span></div>
+            </div>
+          </div>
+          <div class="pkg-card">
+            <span class="pkg-card__tag"><span lang="en">Package 2 · Fanpage + Ads</span><span lang="vi">Gói 2 · Fanpage + Ads</span></span>
+            <div class="pkg-card__fee">$1,000<span class="unit">/<span lang="en">mo</span><span lang="vi">tháng</span></span></div>
+            <div class="pkg-card__sub"><span lang="en">+ ad spend (merchant-paid).</span><span lang="vi">+ tiền ads (khách tự trả).</span></div>
+            <div class="pkg-card__facts">
+              <div class="pkg-card__fact"><b><span lang="en">Scope</span><span lang="vi">Nội dung</span></b><span lang="en">Package 1 + ad management. Merchant funds the ads (floor $1,000/mo).</span><span lang="vi">Như Gói 1 + quản lý quảng cáo. Khách tự trả tiền ads (sàn $1.000/tháng).</span></div>
+              <div class="pkg-card__fact"><b><span lang="en">20% commission on</span><span lang="vi">20% hoa hồng trên</span></b><span class="hl"><span lang="en">the ad spend.</span><span lang="vi">tiền ads đã chi.</span></span></div>
+              <div class="pkg-card__fact"><b><span lang="en">Booking commitment</span><span lang="vi">Cam kết booking</span></b><span lang="en">None.</span><span lang="vi">Không.</span></div>
+            </div>
+          </div>
+          <div class="pkg-card pkg-card--full">
+            <span class="pkg-card__tag"><span lang="en">Package 3 · Full (done-for-you)</span><span lang="vi">Gói 3 · Full (done-for-you)</span></span>
+            <div class="pkg-card__fee">$1,500–2,500<span class="unit">/<span lang="en">mo</span><span lang="vi">tháng</span></span></div>
+            <div class="pkg-card__sub"><span lang="en">$1,500 if ticket &lt;$250, else $2,500. + $2,000 ads pass-through.</span><span lang="vi">$1.500 nếu vé &lt;$250, ngược lại $2.500. + $2.000 ads pass-through.</span></div>
+            <div class="pkg-card__facts">
+              <div class="pkg-card__fact"><b><span lang="en">Scope</span><span lang="vi">Nội dung</span></b><span lang="en">Fanpage + ads + PGU actively converts and books customers (CRM). Full task list &amp; commitment in §2.1c.</span><span lang="vi">Fanpage + ads + PGU chủ động chốt đơn &amp; đặt lịch khách (CRM). Danh sách việc &amp; cam kết ở §2.1c.</span></div>
+              <div class="pkg-card__fact"><b><span lang="en">20% commission on</span><span lang="vi">20% hoa hồng trên</span></b><span class="hl"><span lang="en">booking revenue — every customer PGU's system books, new and returning.</span><span lang="vi">doanh thu booking — mọi khách PGU chốt, cả mới lẫn quay lại.</span></span></div>
+              <div class="pkg-card__fact"><b><span lang="en">Booking commitment</span><span lang="vi">Cam kết booking</span></b><span class="hl"><span lang="en">Yes — 100–200 bookings/mo.</span><span lang="vi">Có — 100–200 khách/tháng.</span></span></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- ============ PART 1 ============ -->
+      <section class="part" id="part-1">
+        <div class="part-header"><span class="part-header__num">01</span><h2><span lang="en">Industry deal-picker</span><span lang="vi">Khung "pick deal" theo ngành</span></h2></div>
+        <p class="part-sub"><span lang="en">Each industry scored on 6 axes: average ticket price, monthly break-even bookings, liability/legal risk, brand fit, vetting complexity, accept/reject call.</span><span lang="vi">Mỗi ngành được chấm theo 6 trục: giá vé trung bình, số đơn hòa vốn/tháng, rủi ro trách nhiệm/pháp lý, độ phù hợp thương hiệu, độ phức tạp thẩm định, khuyến nghị nhận/không nhận.</span></p>
+
+        <code class="formula" lang="en">Break-even bookings/month&nbsp; =&nbsp; (1,500 + 2,000) ÷ (Ticket price × 0.80)&nbsp; =&nbsp; <em class="res">4,375 ÷ Ticket price</em></code>
+        <code class="formula" lang="vi">Đơn hòa vốn/tháng&nbsp; =&nbsp; (1.500 + 2.000) ÷ (Giá vé × 0,80)&nbsp; =&nbsp; <em class="res">4.375 ÷ Giá vé</em></code>
+
+        <div class="dossier">
+          <div class="dossier__head"><span class="dossier__name"><span lang="en">Hair / Barber</span><span lang="vi">Tóc / Barber</span></span><span class="dossier__seq"><span lang="en">Open order · 1</span><span lang="vi">Thứ tự mở · 1</span></span></div>
+          <div class="dossier__body">
+            <div class="field"><dt><span lang="en">Avg ticket</span><span lang="vi">Giá vé TB</span></dt><dd>$45–55</dd></div>
+            <div class="field"><dt><span lang="en">Break-even/mo</span><span lang="vi">Đơn hòa vốn/tháng</span></dt><dd><span lang="en">~80–98 (~2.7–3.3/day)</span><span lang="vi">~80–98 (~2,7–3,3/ngày)</span></dd></div>
+            <div class="field"><dt><span lang="en">Liability risk</span><span lang="vi">Rủi ro trách nhiệm</span></dt><dd><span class="chip chip--low"><span lang="en">Low</span><span lang="vi">Thấp</span></span>&nbsp; <span lang="en">a bad haircut causes no major physical or financial harm</span><span lang="vi">cắt xấu không gây hại vật lý/tài chính lớn</span></dd></div>
+            <div class="field"><dt><span lang="en">Brand fit</span><span lang="vi">Phù hợp thương hiệu</span></dt><dd><span lang="en">Very high — the core of "GlowUp", before/after photos travel well</span><span lang="vi">Rất cao — đúng lõi "GlowUp", ảnh trước/sau viral tốt</span></dd></div>
+            <div class="field"><dt><span lang="en">Vetting complexity</span><span lang="vi">Độ phức tạp thẩm định</span></dt><dd><span lang="en">Low — hygiene, real photos, listed pricing</span><span lang="vi">Thấp — vệ sinh, ảnh thật, giá niêm yết</span></dd></div>
+            <div class="field"><dt><span lang="en">Package 3 threshold</span><span lang="vi">Ngưỡng nhận Gói 3</span></dt><dd><span lang="en">≥6 chairs</span><span lang="vi">≥6 ghế</span></dd></div>
+          </div>
+          <p class="dossier__verdict"><span lang="en">✓ Accept — the opening vertical. Package 3 only for shops ≥6 chairs, rest go to Package 1 or 2</span><span lang="vi">✓ Nhận — vertical mở đầu, chỉ Gói 3 cho tiệm ≥6 ghế, còn lại vào Gói 1 hoặc 2</span></p>
+        </div>
+
+        <div class="dossier">
+          <div class="dossier__head"><span class="dossier__name"><span lang="en">Nail / Brow / Lash</span><span lang="vi">Nail / Brow / Lash</span></span><span class="dossier__seq"><span lang="en">Open order · 2</span><span lang="vi">Thứ tự mở · 2</span></span></div>
+          <div class="dossier__body">
+            <div class="field"><dt><span lang="en">Avg ticket</span><span lang="vi">Giá vé TB</span></dt><dd>$55–70</dd></div>
+            <div class="field"><dt><span lang="en">Break-even/mo</span><span lang="vi">Đơn hòa vốn/tháng</span></dt><dd>~63–80</dd></div>
+            <div class="field"><dt><span lang="en">Liability risk</span><span lang="vi">Rủi ro trách nhiệm</span></dt><dd><span class="chip chip--low"><span lang="en">Low–medium</span><span lang="vi">Thấp–TB</span></span>&nbsp; <span lang="en">rare chemical allergies</span><span lang="vi">dị ứng hóa chất hiếm gặp</span></dd></div>
+            <div class="field"><dt><span lang="en">Brand fit</span><span lang="vi">Phù hợp thương hiệu</span></dt><dd><span lang="en">Very high</span><span lang="vi">Rất cao</span></dd></div>
+            <div class="field"><dt><span lang="en">Vetting complexity</span><span lang="vi">Độ phức tạp thẩm định</span></dt><dd><span lang="en">Low</span><span lang="vi">Thấp</span></dd></div>
+          </div>
+          <p class="dossier__verdict"><span lang="en">✓ Accept — opens right after hair, reuses the same infrastructure</span><span lang="vi">✓ Nhận — mở ngay sau tóc, dùng chung hạ tầng</span></p>
+        </div>
+
+        <div class="dossier">
+          <div class="dossier__head"><span class="dossier__name"><span lang="en">Massage / Spa / Skin</span><span lang="vi">Massage / Spa / Skin</span></span><span class="dossier__seq"><span lang="en">Open order · 3</span><span lang="vi">Thứ tự mở · 3</span></span></div>
+          <div class="dossier__body">
+            <div class="field"><dt><span lang="en">Avg ticket</span><span lang="vi">Giá vé TB</span></dt><dd>$80–140</dd></div>
+            <div class="field"><dt><span lang="en">Break-even/mo</span><span lang="vi">Đơn hòa vốn/tháng</span></dt><dd>~31–55</dd></div>
+            <div class="field"><dt><span lang="en">Liability risk</span><span lang="vi">Rủi ro trách nhiệm</span></dt><dd><span class="chip chip--mid"><span lang="en">Medium</span><span lang="vi">TB</span></span>&nbsp; <span lang="en">health-adjacent. Merchants must never claim treatment/medical outcomes. Customer health data (back pain, pregnancy) is sensitive info requiring separate consent.</span><span lang="vi">health-adjacent. Không được để merchant claim kết quả điều trị/y tế. Dữ liệu sức khỏe khách là sensitive info — cần consent riêng.</span></dd></div>
+            <div class="field"><dt><span lang="en">Brand fit</span><span lang="vi">Phù hợp thương hiệu</span></dt><dd><span lang="en">High</span><span lang="vi">Cao</span></dd></div>
+            <div class="field"><dt><span lang="en">Vetting complexity</span><span lang="vi">Độ phức tạp thẩm định</span></dt><dd><span lang="en">Medium — must verify practitioner certification</span><span lang="vi">TB — cần verify chứng chỉ hành nghề</span></dd></div>
+          </div>
+          <p class="dossier__verdict"><span lang="en">✓ Accept, mandatory: AI scripts banned from saying "cure/treat" — only "relax/care"</span><span lang="vi">✓ Nhận, bắt buộc: script AI cấm nhắc "chữa/điều trị", chỉ nói "thư giãn/chăm sóc"</span></p>
+        </div>
+
+        <div class="dossier">
+          <div class="dossier__head"><span class="dossier__name"><span lang="en">House Cleaning / End-of-Lease</span><span lang="vi">Dọn nhà / Dọn cuối hợp đồng thuê</span></span><span class="dossier__seq"><span lang="en">Open order · 4</span><span lang="vi">Thứ tự mở · 4</span></span></div>
+          <div class="dossier__body">
+            <div class="field"><dt><span lang="en">Avg ticket</span><span lang="vi">Giá vé TB</span></dt><dd><span lang="en">$150 (regular) / $350 (end-of-lease)</span><span lang="vi">$150 (định kỳ) / $350 (cuối hợp đồng)</span></dd></div>
+            <div class="field"><dt><span lang="en">Break-even/mo</span><span lang="vi">Đơn hòa vốn/tháng</span></dt><dd>~13–29</dd></div>
+            <div class="field"><dt><span lang="en">Liability risk</span><span lang="vi">Rủi ro trách nhiệm</span></dt><dd><span class="chip chip--mid"><span lang="en">Medium–high</span><span lang="vi">TB–Cao</span></span>&nbsp; <span lang="en">staff enter customer homes — theft/property damage risk. Police check is a hard requirement, not optional.</span><span lang="vi">nhân viên vào nhà khách — rủi ro trộm cắp, hư hỏng tài sản. Police check là điều kiện cứng.</span></dd></div>
+            <div class="field"><dt><span lang="en">Brand fit</span><span lang="vi">Phù hợp thương hiệu</span></dt><dd><span lang="en">Neutral — doesn't touch "GlowUp" but doesn't hurt the image either</span><span lang="vi">Trung tính — không đụng "GlowUp" nhưng không xấu hình ảnh</span></dd></div>
+            <div class="field"><dt><span lang="en">Vetting complexity</span><span lang="vi">Độ phức tạp thẩm định</span></dt><dd><span lang="en">Medium — police check + property insurance</span><span lang="vi">TB — police check + bảo hiểm tài sản</span></dd></div>
+          </div>
+          <p class="dossier__verdict"><span lang="en">✓ Accept in expansion phase — high ticket, few bookings needed, risk manageable</span><span lang="vi">✓ Nhận ở Phase mở rộng — vé cao, ít đơn cần, rủi ro quản lý được</span></p>
+        </div>
+
+        <div class="dossier">
+          <div class="dossier__head"><span class="dossier__name"><span lang="en">Pest Control / Car Detailing</span><span lang="vi">Diệt côn trùng / Detailing xe</span></span><span class="dossier__seq"><span lang="en">Open order · 4</span><span lang="vi">Thứ tự mở · 4</span></span></div>
+          <div class="dossier__body">
+            <div class="field"><dt><span lang="en">Avg ticket</span><span lang="vi">Giá vé TB</span></dt><dd>$180–200</dd></div>
+            <div class="field"><dt><span lang="en">Break-even/mo</span><span lang="vi">Đơn hòa vốn/tháng</span></dt><dd>~22–24</dd></div>
+            <div class="field"><dt><span lang="en">Liability risk</span><span lang="vi">Rủi ro trách nhiệm</span></dt><dd><span class="chip chip--mid"><span lang="en">Medium</span><span lang="vi">TB</span></span>&nbsp; <span lang="en">chemicals (pest control), scratches (detailing)</span><span lang="vi">hóa chất (diệt côn trùng), trầy xước xe (detailing)</span></dd></div>
+            <div class="field"><dt><span lang="en">Vetting complexity</span><span lang="vi">Độ phức tạp thẩm định</span></dt><dd><span lang="en">Medium — chemical handling license, insurance</span><span lang="vi">TB — giấy phép hóa chất, bảo hiểm</span></dd></div>
+          </div>
+          <p class="dossier__verdict"><span lang="en">✓ Accept in expansion phase</span><span lang="vi">✓ Nhận ở Phase mở rộng</span></p>
+        </div>
+
+        <div class="dossier">
+          <div class="dossier__head"><span class="dossier__name"><span lang="en">Trades — Electrician, Plumber, Locksmith</span><span lang="vi">Trades — Thợ điện, thợ nước, khóa</span></span><span class="dossier__seq"><span lang="en">Open order · 5</span><span lang="vi">Thứ tự mở · 5</span></span></div>
+          <div class="dossier__body">
+            <div class="field"><dt><span lang="en">Avg ticket</span><span lang="vi">Giá vé TB</span></dt><dd>$250–280</dd></div>
+            <div class="field"><dt><span lang="en">Break-even/mo</span><span lang="vi">Đơn hòa vốn/tháng</span></dt><dd><span lang="en">~16–18 (a solo operator is enough capacity)</span><span lang="vi">~16–18 (solo cũng đủ năng lực)</span></dd></div>
+            <div class="field"><dt><span lang="en">Liability risk</span><span lang="vi">Rủi ro trách nhiệm</span></dt><dd><span class="chip chip--high"><span lang="en">High</span><span lang="vi">Cao</span></span>&nbsp; <span lang="en">a botched job causes fires/floods — "PeakGlowUp Verified" reads as vouching for workmanship, though it only verifies license+insurance. Needs a very clear disclaimer: "Verified" = license/insurance checked, NOT a workmanship guarantee.</span><span lang="vi">thợ làm sai gây cháy/ngập nhà — "Verified" dễ bị hiểu là bảo chứng tay nghề. Cần disclaimer rõ: chỉ verify giấy phép/bảo hiểm, KHÔNG bảo đảm chất lượng công việc.</span></dd></div>
+            <div class="field"><dt><span lang="en">Brand fit</span><span lang="vi">Phù hợp thương hiệu</span></dt><dd><span lang="en">High in principle — fear of "is this tradesperson actually licensed" is the strongest moat. Needs a distinct tone from the beauty vertical on the same platform (handled via separate category pages, not a rebrand).</span><span lang="vi">Cao về mặt lý — nỗi sợ "thợ có license thật không" là moat mạnh nhất. Cần tông khác biệt với ngách beauty (xử lý bằng category page riêng, không phải đổi tên).</span></dd></div>
+            <div class="field"><dt><span lang="en">Vetting complexity</span><span lang="vi">Độ phức tạp thẩm định</span></dt><dd><span lang="en">High — must verify license with each state's licensing body, rules differ by state</span><span lang="vi">Cao — verify license theo từng bang, cần người hiểu quy định</span></dd></div>
+          </div>
+          <p class="dossier__verdict"><span lang="en">✓ Accept — but ONLY after the beauty vertical has proven the vetting process + legal setup is stable</span><span lang="vi">✓ Nhận — nhưng CHỈ sau khi ngành beauty đã chứng minh quy trình thẩm định + pháp lý ổn định</span></p>
+        </div>
+
+        <div class="dossier">
+          <div class="dossier__head"><span class="dossier__name"><span lang="en">Professional — Accountant, Lawyer, Dentist</span><span lang="vi">Professional — Kế toán, luật sư, nha khoa</span></span><span class="dossier__seq"><span lang="en">Open order · 6</span><span lang="vi">Thứ tự mở · 6</span></span></div>
+          <div class="dossier__body">
+            <div class="field"><dt><span lang="en">Avg ticket</span><span lang="vi">Giá vé TB</span></dt><dd><span lang="en">$220–300+ (wide variance)</span><span lang="vi">$220–300+ (biến động lớn)</span></dd></div>
+            <div class="field"><dt><span lang="en">Break-even/mo</span><span lang="vi">Đơn hòa vốn/tháng</span></dt><dd>~15–20</dd></div>
+            <div class="field"><dt><span lang="en">Liability risk</span><span lang="vi">Rủi ro trách nhiệm</span></dt><dd><span class="chip chip--high"><span lang="en">Highest</span><span lang="vi">Cao nhất</span></span>&nbsp; <span lang="en">mistakes can cause major financial or health harm. "Verified" is easily misread as vouching for professional competence.</span><span lang="vi">sai sót có thể gây thiệt hại tài chính/sức khỏe lớn. "Verified" dễ hiểu nhầm là bảo chứng năng lực chuyên môn.</span></dd></div>
+            <div class="field"><dt><span lang="en">Brand fit</span><span lang="vi">Phù hợp thương hiệu</span></dt><dd><span lang="en">Needs its own tone — not because the brand name limits scope, but because the casual-beauty voice doesn't suit finding a lawyer or dentist. Handled with a distinct, more formal category-page design, no rebrand needed.</span><span lang="vi">Cần giọng điệu riêng — không phải vì tên brand giới hạn phạm vi, mà vì tông beauty-casual chưa hợp trải nghiệm tìm luật sư/nha sĩ. Xử lý bằng category page trang trọng hơn, không cần đổi brand.</span></dd></div>
+            <div class="field"><dt><span lang="en">Vetting complexity</span><span lang="vi">Độ phức tạp thẩm định</span></dt><dd><span lang="en">Highest — must verify registration with the relevant professional body (CPA/CA, Law Society, AHPRA)</span><span lang="vi">Cao nhất — verify đăng ký hành nghề với hội nghề nghiệp (CPA/CA, Law Society, AHPRA)</span></dd></div>
+          </div>
+          <p class="dossier__verdict is-hold"><span lang="en">⏸ Hold for last — highest ticket, fewest bookings needed, best unit economics, but demands the most mature legal/insurance foundation</span><span lang="vi">⏸ Để sau cùng — vé cao, đơn cần ít, kinh tế đơn vị tốt nhất, nhưng đòi hỏi nền tảng pháp lý/bảo hiểm trưởng thành nhất</span></p>
+        </div>
+
+        <h3><span lang="en">Summary ranking</span><span lang="vi">Bảng tổng hợp xếp hạng</span></h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th><span lang="en">Industry</span><span lang="vi">Ngành</span></th><th class="num"><span lang="en">Break-even/mo</span><span lang="vi">Đơn hòa vốn/tháng</span></th><th><span lang="en">Liability risk</span><span lang="vi">Rủi ro trách nhiệm</span></th><th class="num"><span lang="en">Open order</span><span lang="vi">Thứ tự mở</span></th></tr></thead>
+            <tbody>
+              <tr><td><span lang="en">Hair / Barber</span><span lang="vi">Tóc / Barber</span></td><td class="num">80–98</td><td><span class="chip chip--low"><span lang="en">Low</span><span lang="vi">Thấp</span></span></td><td class="num">1</td></tr>
+              <tr><td>Nail / Brow / Lash</td><td class="num">63–80</td><td><span class="chip chip--low"><span lang="en">Low</span><span lang="vi">Thấp</span></span></td><td class="num">2</td></tr>
+              <tr><td><span lang="en">Massage / Spa</span><span lang="vi">Massage / Spa</span></td><td class="num">31–55</td><td><span class="chip chip--mid"><span lang="en">Medium</span><span lang="vi">TB</span></span></td><td class="num">3</td></tr>
+              <tr><td><span lang="en">Cleaning / End-of-lease</span><span lang="vi">Dọn nhà / Cuối HĐ thuê</span></td><td class="num">13–29</td><td><span class="chip chip--mid"><span lang="en">Med–high</span><span lang="vi">TB–Cao</span></span></td><td class="num">4</td></tr>
+              <tr><td><span lang="en">Pest control / Detailing</span><span lang="vi">Diệt côn trùng / Detailing</span></td><td class="num">22–24</td><td><span class="chip chip--mid"><span lang="en">Medium</span><span lang="vi">TB</span></span></td><td class="num">4</td></tr>
+              <tr><td><span lang="en">Trades (electric, plumbing)</span><span lang="vi">Trades (điện, nước)</span></td><td class="num">16–18</td><td><span class="chip chip--high"><span lang="en">High</span><span lang="vi">Cao</span></span></td><td class="num">5</td></tr>
+              <tr><td><span lang="en">Professional (accounting, legal, dental)</span><span lang="vi">Professional (kế toán, luật, nha)</span></td><td class="num">15–20</td><td><span class="chip chip--high"><span lang="en">Highest</span><span lang="vi">Cao nhất</span></span></td><td class="num">6</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout--finding">
+          <span class="callout__label"><span lang="en">Observation</span><span lang="vi">Quan sát</span></span>
+          <p><span lang="en">The industries opened <strong>last</strong> (trades, professional) have the <strong>best unit economics</strong> (fewest bookings needed, highest ticket) — the reverse of the opening order. That's not a contradiction: the opening order is driven by <em>how ready the vetting capability is</em>, not by <em>which industry is most profitable</em>. The most profitable industry is exactly the one that needs the most preparation before touching it.</span><span lang="vi">Ngành mở <strong>sau cùng</strong> (trades, professional) lại có <strong>kinh tế đơn vị tốt nhất</strong> (ít đơn cần, vé cao) — nghịch với thứ tự mở. Đây không phải mâu thuẫn: thứ tự mở dựa trên <em>năng lực thẩm định sẵn sàng tới đâu</em>, không dựa trên <em>ngành nào lãi nhất</em>. Ngành lãi nhất chính là ngành cần chuẩn bị kỹ nhất trước khi chạm vào.</span></p>
+        </div>
+
+        <h3><span lang="en">1.9 Package fit by industry — quick reference</span><span lang="vi">1.9. Áp gói theo ngành — bảng tra nhanh</span></h3>
+        <p><span lang="en">Three packages (§2.1b): <strong>Package 1</strong> ($1,000, fanpage only) · <strong>Package 2</strong> ($1,000 + 20% of ad spend) · <strong>Package 3</strong> ($1,500 or $2,500 + ads + 20% commission, with booking commitment). Package 3's price tier follows avg ticket (threshold $250), and whether a merchant even qualifies for Package 3 depends on capacity — the higher the break-even count, the larger the merchant needs to be for it to be safe (see the break-even analysis in Part 2 and the worked example in §2.1).</span><span lang="vi">Ba gói (§2.1b): <strong>Gói 1</strong> ($1.000, chỉ fanpage) · <strong>Gói 2</strong> ($1.000 + 20% ads) · <strong>Gói 3</strong> ($1.500 hoặc $2.500 + ads + 20% hoa hồng, có cam kết booking). Bậc giá của Gói 3 theo giá vé (ngưỡng $250), và việc có được nhận Gói 3 hay không phụ thuộc năng lực (đơn hòa vốn càng cao thì cần quy mô càng lớn mới an toàn — xem phân tích hòa vốn ở Phần 2 và ví dụ cụ thể tại §2.1).</span></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th><span lang="en">Industry</span><span lang="vi">Ngành</span></th><th class="num"><span lang="en">Avg ticket</span><span lang="vi">Giá vé TB</span></th><th><span lang="en">Package 3 tier</span><span lang="vi">Bậc Gói 3</span></th><th class="num"><span lang="en">Package 3 break-even/mo</span><span lang="vi">Đơn hòa vốn Gói 3/tháng</span></th><th><span lang="en">Capacity threshold for Package 3</span><span lang="vi">Ngưỡng năng lực để nhận Gói 3</span></th><th><span lang="en">Below threshold →</span><span lang="vi">Dưới ngưỡng →</span></th></tr></thead>
+            <tbody>
+              <tr><td><span lang="en">Hair / Barber</span><span lang="vi">Tóc/Barber</span></td><td class="num">$45–55</td><td>$1,500</td><td class="num">~80–97</td><td><span lang="en">≥6 chairs</span><span lang="vi">≥6 ghế</span></td><td><span lang="en">Package 1 or 2</span><span lang="vi">Gói 1 hoặc 2</span></td></tr>
+              <tr><td><span lang="en">Nail / Brow / Lash</span><span lang="vi">Nail/Brow/Lash</span></td><td class="num">$55–70</td><td>$1,500</td><td class="num">~63–80</td><td><span lang="en">≥6 chairs</span><span lang="vi">≥6 ghế</span></td><td><span lang="en">Package 1 or 2</span><span lang="vi">Gói 1 hoặc 2</span></td></tr>
+              <tr><td><span lang="en">Massage / Spa</span><span lang="vi">Massage/Spa</span></td><td class="num">$80–140</td><td>$1,500</td><td class="num">~31–55</td><td><span lang="en">≥3–4 chairs/rooms</span><span lang="vi">≥3–4 ghế/phòng</span></td><td><span lang="en">Package 1 or 2</span><span lang="vi">Gói 1 hoặc 2</span></td></tr>
+              <tr><td><span lang="en">Regular home cleaning</span><span lang="vi">Dọn nhà định kỳ</span></td><td class="num">$150</td><td>$1,500</td><td class="num">~29</td><td><span lang="en">≥2–3 crews/staff</span><span lang="vi">≥2–3 đội/nhân viên</span></td><td><span lang="en">Package 1 or 2</span><span lang="vi">Gói 1 hoặc 2</span></td></tr>
+              <tr><td><span lang="en">End-of-lease cleaning</span><span lang="vi">Dọn cuối hợp đồng thuê</span></td><td class="num">$350</td><td>$2,500</td><td class="num">~16</td><td><span lang="en">Solo/1 crew is enough</span><span lang="vi">Solo/1 đội đã đủ</span></td><td><span lang="en">Rarely needs Package 1/2</span><span lang="vi">Hiếm khi cần Gói 1/2</span></td></tr>
+              <tr><td><span lang="en">Pest control / Detailing</span><span lang="vi">Diệt côn trùng/Detailing</span></td><td class="num">$180–200</td><td>$1,500</td><td class="num">~22–24</td><td><span lang="en">≥2 technicians</span><span lang="vi">≥2 kỹ thuật viên</span></td><td><span lang="en">Package 1 or 2</span><span lang="vi">Gói 1 hoặc 2</span></td></tr>
+              <tr><td><span lang="en">Trades (electric, plumbing)</span><span lang="vi">Trades (điện, nước)</span></td><td class="num">$250–280</td><td>$2,500</td><td class="num">~20–23</td><td><span lang="en">Solo is enough</span><span lang="vi">Solo đã đủ</span></td><td><span lang="en">Rarely needs Package 1/2</span><span lang="vi">Hiếm khi cần Gói 1/2</span></td></tr>
+              <tr><td><span lang="en">Professional (accounting, legal, dental)</span><span lang="vi">Professional (kế toán, luật, nha)</span></td><td class="num">$220–300+</td><td>$2,500</td><td class="num">~19–26</td><td><span lang="en">Solo/small is enough</span><span lang="vi">Solo/nhỏ đã đủ</span></td><td><span lang="en">Rarely needs Package 1/2</span><span lang="vi">Hiếm khi cần Gói 1/2</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span lang="en"><strong>Reading the table — hair example:</strong> a hair salon with <strong>≥6 chairs</strong> should be offered <strong>Package 3 at the $1,500 tier</strong> (not $2,500 — the $45–55 ticket is too low to break even at the higher tier; see the "8 chairs + $2,500 + $5,000 ads" worked example in Part 2, which shows the merchant risking a loss). A salon with <strong>1–2 chairs</strong> should be offered <strong>Package 1 or 2</strong> — not yet big enough to safely carry Package 3's 100–200 bookings/month commitment.</span><span lang="vi"><strong>Ví dụ đọc bảng — ngành tóc:</strong> một tiệm tóc <strong>≥6 ghế</strong> nên chào <strong>Gói 3 ở bậc $1.500</strong> (không phải $2.500 — vé $45-55 quá thấp để hòa vốn ở bậc cao, xem ví dụ cụ thể "8 ghế + $2.500 + $5.000 ads" đã tính ở Phần 2, kết quả là merchant có nguy cơ lỗ). Một tiệm tóc <strong>1-2 ghế</strong> nên chào <strong>Gói 1 hoặc 2</strong> — chưa đủ năng lực nhận cam kết 100-200 khách/tháng của Gói 3.</span></p>
+        <p><span lang="en"><strong>General rule from the table:</strong> low-ticket industries (beauty, regular cleaning, pest control) → Package 3 always sits at the $1,500 tier, and needs a larger scale (more chairs/technicians) to safely qualify. High-ticket industries (trades, professional, end-of-lease cleaning) → Package 3 always sits at the $2,500 tier, and even a small/solo merchant already qualifies — because the break-even count is low (under 26/month across every high-ticket industry).</span><span lang="vi"><strong>Quy tắc chung suy ra từ bảng:</strong> ngành vé thấp (beauty, dọn nhà định kỳ, diệt côn trùng) → Gói 3 luôn ở bậc $1.500, và cần quy mô lớn hơn (nhiều ghế/kỹ thuật viên) mới an toàn nhận. Ngành vé cao (trades, professional, dọn cuối hợp đồng) → Gói 3 luôn ở bậc $2.500, và ngay cả merchant nhỏ/solo cũng đủ năng lực nhận — vì đơn hòa vốn thấp (dưới 26/tháng ở mọi ngành vé cao).</span></p>
+      </section>
+
+      <!-- ============ PART 2 ============ -->
+      <section class="part" id="part-2">
+        <div class="part-header"><span class="part-header__num">02</span><h2><span lang="en">Financial model by scale</span><span lang="vi">Mô hình tài chính theo mốc khách hàng</span></h2></div>
+        <p class="part-sub"><span lang="en">Headcount and profit at five scale milestones: 50 · 100 · 300 · 700 · 1,000 merchants.</span><span lang="vi">Nhân sự và lợi nhuận ở năm mốc quy mô: 50 · 100 · 300 · 700 · 1.000 merchant.</span></p>
+
+        <h3>2.1 — <span lang="en">Base assumptions</span><span lang="vi">Giả định nền</span></h3>
+        <ul class="plain">
+          <li><span lang="en">Client mix: <strong>35% Package 3</strong> (≥6 chairs, full package) / <strong>65% Package 1/2</strong> (1–2 chairs, fanpage-only or +ads) — reflects that most local service businesses are small. Assumption, needs real-data adjustment. <strong>Warning:</strong> the scale-by-milestone headcount/profit tables in §2.3–2.5 still use this simplified 2-way split — Package 2 is NOT yet broken out as its own line in the milestone table, only in the standalone example in §2.1b. A proper rework is needed if a fully accurate 3-package scale model is required.</span><span lang="vi">Tỷ lệ khách: <strong>35% Gói 3</strong> (≥6 ghế) / <strong>65% Gói 1/2</strong> (1–2 ghế) — phản ánh thực tế đa số doanh nghiệp nhỏ. Giả định, cần điều chỉnh theo dữ liệu thật. <strong>Cảnh báo:</strong> bảng nhân sự/lợi nhuận theo mốc ở §2.3–2.5 hiện vẫn dùng cách chia 2 nhóm đơn giản này — Gói 2 CHƯA được tách riêng thành một dòng số liệu trong bảng theo mốc quy mô, chỉ có ở ví dụ lợi nhuận đơn lẻ §2.1b. Cần làm lại nếu muốn mô hình 3 gói chính xác ở mọi mốc.</span></li>
+          <li><span lang="en">Package 3: $1,500/mo + 20% × (100–200 customers/mo × $60–70/booking) → revenue <strong>~$42,000/year/client</strong> (range $32,400–$51,600)</span><span lang="vi">Gói 3: $1.500/tháng + 20% × (100–200 khách/tháng × $60–70/đơn) → doanh thu <strong>~$42.000/năm/khách</strong> (dải $32.400–$51.600)</span></li>
+          <li><span lang="en">Package 1: $1,000/mo → revenue <strong>$12,000/year/client</strong>, fixed</span><span lang="vi">Gói 1: $1.000/tháng → doanh thu <strong>$12.000/năm/khách</strong>, không biến động</span></li>
+          <li><span lang="en">Fanpage team (both packages): ratio 4 people : 20 clients</span><span lang="vi">Đội fanpage (cả hai gói): tỷ lệ 4 người : 20 khách</span></li>
+          <li><span lang="en">Consumer booking-conversion team (Package 3 only): estimated 6 people : 100 Package-3 clients — <em>unverified</em></span><span lang="vi">Đội chốt đơn consumer (chỉ Gói 3): ước lượng 6 người : 100 khách Gói 3 — <em>chưa kiểm chứng</em></span></li>
+          <li><span lang="en">Ads team (Package 3 only): 3 people : 100 Package-3 clients</span><span lang="vi">Đội ads (chỉ Gói 3): 3 người : 100 khách Gói 3</span></li>
+          <li><span lang="en"><strong>Staff referral commission:</strong> a staff member who refers a new merchant earns 5% of that merchant's first-year contract revenue, once. At the 50–100 milestones there's no AU staff yet (§2.3), so this cost is $0; it starts at the 300 milestone.</span><span lang="vi"><strong>Hoa hồng môi giới nhân viên:</strong> nhân viên giới thiệu được merchant mới nhận 5% doanh thu hợp đồng năm đầu của merchant đó, một lần. Ở mốc 50–100 chưa có đội Úc (§2.3) nên chi phí này bằng $0; bắt đầu từ mốc 300.</span></li>
+        </ul>
+
+        <h3>2.1b — <span lang="en">Three-package structure for merchants</span><span lang="vi">Cấu trúc 3 gói dịch vụ cho merchant</span></h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th><span lang="en">Package 1</span><span lang="vi">Gói 1</span></th><th><span lang="en">Package 2</span><span lang="vi">Gói 2</span></th><th><span lang="en">Package 3</span><span lang="vi">Gói 3</span></th></tr></thead>
+            <tbody>
+              <tr><td><span lang="en">Monthly fee</span><span lang="vi">Phí tháng</span></td><td>$1,000</td><td>$1,000</td><td><span lang="en">$1,500 (ticket &lt;$250) or $2,500 (ticket ≥$250)</span><span lang="vi">$1.500 (vé &lt;$250) hoặc $2.500 (vé ≥$250)</span></td></tr>
+              <tr><td><span lang="en">Scope</span><span lang="vi">Nội dung</span></td><td><span lang="en">Fanpage management: auto-posting + auto video</span><span lang="vi">Quản lý fanpage: đăng bài + tạo video tự động</span></td><td><span lang="en">Package 1 + ad management</span><span lang="vi">Như Gói 1 + quản lý quảng cáo</span></td><td><span lang="en">Full: fanpage + ads + consumer booking conversion + booking engine</span><span lang="vi">Full: fanpage + quảng cáo + chốt đơn consumer + booking</span></td></tr>
+              <tr><td><span lang="en">Customer commitment</span><span lang="vi">Cam kết mang khách</span></td><td><span lang="en">None</span><span lang="vi">Không</span></td><td><span lang="en">None</span><span lang="vi">Không</span></td><td><span lang="en">Yes (100–200 customers/mo for low-ticket)</span><span lang="vi">Có (100–200 khách/tháng cho vé thấp)</span></td></tr>
+              <tr><td><span lang="en">Extra charge mechanism</span><span lang="vi">Cơ chế thu thêm</span></td><td><span lang="en">None</span><span lang="vi">Không</span></td><td><span lang="en"><strong>20% of ad spend</strong> (floats monthly — top up $2,000 one month, charged 20% of $2,000; top up $1,000 next month, charged 20% of $1,000)</span><span lang="vi"><strong>20% trên số tiền ads đã chi</strong> (thả nổi theo tháng — nạp $2.000 tính 20% của $2.000, nạp $1.000 tính 20% của $1.000)</span></td><td><span lang="en">See commission table below</span><span lang="vi">Xem bảng hoa hồng dưới đây</span></td></tr>
+              <tr><td><span lang="en">Minimum ad floor</span><span lang="vi">Sàn ads tối thiểu</span></td><td>—</td><td><span lang="en"><strong>$1,000/mo (confirmed)</strong> — matches the platform fee exactly, easy to remember ("double your monthly fee is enough to run effectively"); not $3,000, too high for the actual 1–2 chair target segment</span><span lang="vi"><strong>$1.000/tháng (đã chốt)</strong> — bằng đúng phí tháng, dễ nhớ ("gấp đôi phí tháng là đủ chạy có hiệu quả"); không dùng $3.000 vì quá cao so với đúng đối tượng tiệm nhỏ 1-2 ghế</span></td><td><span lang="en">$2,000/mo (standard), pure pass-through, no separate % charged on the ad spend itself</span><span lang="vi">$2.000/tháng (chuẩn), pass-through thuần, KHÔNG thu % riêng trên ads</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout--warn">
+          <span class="callout__label"><span lang="en">Hard rule — no double-charging</span><span lang="vi">Quy tắc cứng — không chồng phí</span></span>
+          <p><span lang="en">Package 2 and Package 3 use two <strong>mutually exclusive</strong> fee mechanisms, never stacked: Package 2 has no booking-conversion team or booking-verification system → charges on <strong>ad spend</strong> (objective, verifiable via Meta/Google spend reports, doesn't require knowing whether a new customer actually showed up). Package 3 has a conversion team + a verifiable booking system → charges on <strong>real booking revenue</strong>; ad spend in Package 3 is pure pass-through with no separate fee — the booking commission already covers the ads-team cost with large margin to spare (Package 3 margin stays &gt;90% even with an ads team).</span><span lang="vi">Gói 2 và Gói 3 dùng hai cơ chế thu tiền <strong>loại trừ nhau</strong>, không cộng dồn: Gói 2 không có đội chốt đơn/hệ thống xác minh booking → thu trên <strong>tiền ads đã chi</strong> (khách quan, xác minh qua báo cáo chi tiêu Meta/Google, không cần biết khách mới có đến hay không). Gói 3 có đội chốt đơn + hệ thống booking xác minh được → thu trên <strong>doanh thu đơn hàng thật</strong>; tiền ads ở Gói 3 là pass-through thuần túy, không thu % riêng — vì hoa hồng booking đã gánh đủ chi phí đội ads dư sức (biên lợi nhuận Gói 3 vẫn &gt;90% dù có đội ads).</span></p>
+        </div>
+
+        <h3>2.1c — <span lang="en">What PGU delivers under Package 3 — and what it commits to</span><span lang="vi">Gói 3 — PGU làm những gì và cam kết ra sao</span></h3>
+        <p><span lang="en">Package 3 is a <strong>done-for-you</strong> service, not a tool the merchant operates. That's what justifies the higher fee and the 20% commission. Concretely, PGU runs the entire pipeline from ad to checked-in customer:</span><span lang="vi">Gói 3 là dịch vụ <strong>làm-giùm-tất-cả (done-for-you)</strong>, không phải công cụ để merchant tự vận hành. Đó là lý do phí cao hơn và có 20% hoa hồng. Cụ thể, PGU chạy toàn bộ chuỗi từ quảng cáo đến khách đã đến tiệm:</span></p>
+        <ol class="plain">
+          <li><span lang="en"><strong>Fanpage management</strong> — content calendar, auto-generated video, brand-consistent posts (everything in Package 1).</span><span lang="vi"><strong>Quản lý fanpage</strong> — lịch nội dung, video tự động, bài đăng đúng brand (toàn bộ như Gói 1).</span></li>
+          <li><span lang="en"><strong>Paid ads</strong> — set up, run, and optimize Meta/Google campaigns; merchant funds the $2,000/mo ad spend (pass-through, no markup).</span><span lang="vi"><strong>Quảng cáo trả phí</strong> — lập, chạy, tối ưu campaign Meta/Google; merchant tự trả $2.000/tháng tiền ads (pass-through, không cộng lời).</span></li>
+          <li><span lang="en"><strong>Lead capture</strong> — every inbound message, comment, and call from ads or organic lands in PGU's CRM, nothing dropped.</span><span lang="vi"><strong>Thu lead</strong> — mọi tin nhắn, bình luận, cuộc gọi từ ads hoặc tự nhiên đều vào CRM của PGU, không rơi rớt.</span></li>
+          <li><span lang="en"><strong>Booking conversion (the core labor)</strong> — PGU's team actively replies, calls leads back, answers questions, handles objections, and closes the booking. This is the work Package 1/2 do <em>not</em> include.</span><span lang="vi"><strong>Chốt đơn (lao động lõi)</strong> — đội PGU chủ động trả lời, gọi lại lead, giải đáp, xử lý từ chối, và chốt lịch. Đây là phần việc Gói 1/2 <em>không</em> có.</span></li>
+          <li><span lang="en"><strong>Scheduling &amp; confirmation</strong> — book the slot into the merchant's calendar and send reminders to cut no-shows.</span><span lang="vi"><strong>Đặt lịch &amp; xác nhận</strong> — đưa lịch vào calendar của merchant, nhắc hẹn để giảm no-show.</span></li>
+          <li><span lang="en"><strong>Follow-up &amp; rebooking</strong> — after the visit, PGU follows up to bring the customer back. This recurring labor is exactly why returning customers still count toward commission (see below).</span><span lang="vi"><strong>Theo dõi &amp; gọi lại</strong> — sau khi khách đến, PGU follow để kéo khách quay lại. Chính lao động lặp lại này là lý do khách quay lại vẫn tính hoa hồng (xem dưới).</span></li>
+          <li><span lang="en"><strong>Monthly report</strong> — a verifiable booking/revenue report; the 20% commission is calculated against it.</span><span lang="vi"><strong>Báo cáo tháng</strong> — báo cáo booking/doanh thu xác minh được; 20% hoa hồng tính trên đó.</span></li>
+        </ol>
+
+        <div class="callout callout--info">
+          <span class="callout__label"><span lang="en">PGU's commitment under Package 3</span><span lang="vi">Cam kết của PGU ở Gói 3</span></span>
+          <div class="kv-list">
+            <div><b>1</b><span><span lang="en"><strong>Volume:</strong> deliver <strong>100–200 booked customers/month</strong> (low-ticket tier) who actually check in — not just leads or messages.</span><span lang="vi"><strong>Số lượng:</strong> mang về <strong>100–200 khách đã đặt lịch/tháng</strong> (bậc vé thấp) và <strong>thật sự đến tiệm</strong> — không phải chỉ lead hay tin nhắn.</span></span></div>
+            <div><b>2</b><span><span lang="en"><strong>Only PGU-produced bookings count</strong> toward commission — the merchant's pre-existing walk-in base is never charged (fraud guardrail; see the boundary in §2.1d).</span><span lang="vi"><strong>Chỉ booking do PGU tạo ra</strong> mới tính hoa hồng — khách vãng lai sẵn có của merchant không bao giờ bị tính (chống gian lận; xem ranh giới ở §2.1d).</span></span></div>
+            <div><b>3</b><span><span lang="en"><strong>Billing:</strong> commission is on <strong>verified, checked-in booking revenue</strong>, billed monthly against the report in step 7.</span><span lang="vi"><strong>Cách tính tiền:</strong> hoa hồng trên <strong>doanh thu booking đã xác minh, khách đã đến</strong>, chốt theo tháng dựa trên báo cáo bước 7.</span></span></div>
+            <div><b>4</b><span><span lang="en"><strong>Whose risk if the target is missed:</strong> that's on PGU, not the merchant — the volume commitment is what justifies charging a higher base fee than Package 1/2. <em>(The exact remedy — partial fee credit vs. make-up the following month — is a contract term still to finalize.)</em></span><span lang="vi"><strong>Rủi ro nếu không đạt mục tiêu:</strong> thuộc về PGU, không phải merchant — chính cam kết số lượng là lý do thu phí nền cao hơn Gói 1/2. <em>(Chế tài cụ thể — bù trừ một phần phí hay bù khách tháng sau — là điều khoản hợp đồng cần chốt.)</em></span></span></div>
+          </div>
+        </div>
+
+        <h3>2.1d — <span lang="en">Package 3 commission: why 20% applies to BOTH new and returning customers</span><span lang="vi">Hoa hồng Gói 3 — vì sao thu 20% trên cả khách mới lẫn khách cũ</span></h3>
+        <p><span lang="en"><strong>No promotions/discounts to attract customers</strong> (decided — see the Groupon warning below). Package 3 keeps a straightforward <strong>20% commission on real booking revenue</strong>, charged every month on the full volume of customers flowing through PGU's system — <strong>regardless of whether they're new or returning.</strong></span><span lang="vi"><strong>Không dùng khuyến mãi/giảm giá để kéo khách</strong> (đã quyết định — xem cảnh báo Groupon dưới đây). Gói 3 giữ nguyên cơ chế <strong>20% hoa hồng trên doanh thu booking thật</strong>, thu đều mỗi tháng trên toàn bộ khối lượng khách đi qua hệ thống PGU — <strong>không phân biệt khách mới hay khách quay lại.</strong></span></p>
+
+        <div class="callout callout--info">
+          <span class="callout__label"><span lang="en">Why NOT "first-visit-only" like Fresha/Booksy/Treatwell</span><span lang="vi">Vì sao KHÔNG áp dụng kiểu "chỉ tính lần đầu" như Fresha/Booksy/Treatwell</span></span>
+          <p><span lang="en">Those three are <strong>self-serve marketplaces</strong> — the customer rebooks themselves in-app, processing cost is near-zero, so being fee-free forever after visit one costs them nothing. Package 3 is structurally different: a booking-conversion team <strong>actively follows up, calls, and reschedules</strong> customers — real, recurring labor, for new and returning customers alike, every month. Waiving the fee for returning customers while the team still does the identical work to retain/rebook them would be a real cost-revenue mismatch, not a generous policy.</span><span lang="vi">Ba đối thủ đó là marketplace <strong>tự phục vụ</strong> — khách tự mở app đặt lại, chi phí xử lý gần như $0, nên miễn phí mãi sau lần đầu không tốn gì. Gói 3 khác về bản chất: đội chốt đơn <strong>chủ động follow, gọi điện, hẹn lại lịch</strong> — lao động thật, lặp lại mỗi tháng, cho cả khách mới lẫn khách cũ. Miễn phí cho khách cũ trong khi đội vẫn làm việc y hệt để giữ chân/gọi họ quay lại là một lỗ hổng chi phí-doanh thu, không phải chính sách hào phóng.</span></p>
+        </div>
+
+        <div class="table-wrap">
+          <span class="table-caption"><span lang="en">The right boundary isn't "new vs. returning" — it's "touched PGU's system or not"</span><span lang="vi">Ranh giới đúng không phải "mới hay cũ" — mà là "có đi qua hệ thống PGU hay không"</span></span>
+          <table>
+            <thead><tr><th><span lang="en">Customer type</span><span lang="vi">Loại khách</span></th><th><span lang="en">Counted toward commitment/commission?</span><span lang="vi">Có tính vào cam kết/hoa hồng?</span></th></tr></thead>
+            <tbody>
+              <tr><td><span lang="en">Merchant's own pre-existing customer, never touched by PGU, calls the shop directly</span><span lang="vi">Khách merchant vốn có từ trước, chưa từng qua PGU, tự gọi thẳng tiệm</span></td><td><strong><span lang="en">No</span><span lang="vi">Không</span></strong> — <span lang="en">PGU did no work for this visit; charging would be fraud against the merchant itself</span><span lang="vi">PGU không làm gì cho lượt này, tính là gian lận với chính merchant</span></td></tr>
+              <tr><td><span lang="en">Customer who has been through PGU before (1st or 20th visit), still actively followed up/rebooked by the conversion team</span><span lang="vi">Khách đã từng qua PGU (dù lần 1 hay lần 20), vẫn được đội chốt đơn chủ động follow/gọi lại/hẹn lịch</span></td><td><strong><span lang="en">Yes, full 20%</span><span lang="vi">Có, đủ 20%</span></strong> — <span lang="en">real labor is spent regularly</span><span lang="vi">lao động thật vẫn bỏ ra đều đặn</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><span lang="en">The "100–200 customers/month" figure in §2.1 has always meant a <strong>recurring monthly volume</strong> (new + returning mixed), and the 20% commission has always been computed monthly on that full figure throughout this document — nothing in the profit tables needs to change.</span><span lang="vi">Con số "100–200 khách/tháng" ở §2.1 luôn được hiểu là khối lượng <strong>mỗi tháng đều có</strong> (mới + cũ trộn lẫn), và 20% hoa hồng đã luôn được tính lặp lại hàng tháng trên toàn bộ khối lượng đó xuyên suốt tài liệu này — không có gì cần đổi trong các bảng lợi nhuận đã tính.</span></p>
+
+        <div class="callout callout--finding">
+          <span class="callout__label"><span lang="en">A win for both sides</span><span lang="vi">Lợi ích kép — tốt cho cả hai bên</span></span>
+          <p><span lang="en">The merchant keeps getting new orders from ads AND gets free, ongoing retention/reactivation service from PGU (something most small merchants do poorly alone). PGU earns more stable revenue (not betting everything on finding enough brand-new customers every single month) and <strong>reduces the AU ad-cost risk</strong> (assumption #6, Part 3) — reactivating a returning customer costs almost nothing in ad spend while still earning the full 20%, so the more returning customers inside the "100–200/month" pool, the better the real margin looks compared to assuming everyone needs fresh paid acquisition.</span><span lang="vi">Merchant vừa liên tục có đơn mới từ ads, vừa được PGU chủ động giữ chân/tái kích hoạt khách cũ miễn phí (dịch vụ mà tự họ làm một mình thường yếu hơn nhiều). PGU vừa thu hoa hồng ổn định hơn (không đánh cược 100% vào việc tháng nào cũng phải kiếm đủ khách MỚI), vừa <strong>giảm nhẹ rủi ro chi phí ads Úc đắt đỏ</strong> (giả định #6, Phần 3) — khách cũ quay lại tốn ads gần $0 trong khi vẫn thu đủ 20%, nên khối "100-200 khách/tháng" càng có nhiều khách cũ tái kích hoạt thì biên lợi nhuận thật càng tốt hơn so với giả định toàn bộ đều phải mua ads mới.</span></p>
+        </div>
+
+        <div class="callout callout--risk">
+          <span class="callout__label"><span lang="en">Why not use discounts to attract customers — the Groupon lesson</span><span lang="vi">Về việc dùng khuyến mãi/giảm giá để kéo khách — bài học Groupon</span></span>
+          <p><span lang="en">Groupon tried exactly this mechanism in the beauty industry: merchants had to discount ≥52%, Groupon took another 50% commission on top, customers who came were bargain hunters, not loyal ones, and some merchants got flooded beyond capacity with their review reputation collapsing as a result. Fresha/Booksy/Treatwell were founded right after Groupon's salon-deal crash, and none of the three use customer-facing discounts — they charge merchant-side commission only (Fresha 20%, Booksy 30%, Treatwell ~35%+VAT) on the first visit, and still succeed at tens of millions of bookings/month. The biggest risk for PeakGlowUp specifically: a discount attracts the wrong customer profile (price-motivated, not trust-motivated) — directly at odds with the "Verified" positioning — and a capacity-overloading surge would generate exactly the bad reviews that poison the Verified Facts data the whole SEO/AEO strategy depends on.</span><span lang="vi">Groupon từng thử đúng cơ chế này ở ngành beauty — merchant phải giảm giá ≥52%, Groupon ăn thêm 50% hoa hồng trên đó, khách đến là người săn deal chứ không trung thành, một số merchant bị tràn khách vượt năng lực và uy tín review sập theo. Fresha/Booksy/Treatwell ra đời ngay sau giai đoạn Groupon sụp đổ, không ai trong ba đối thủ dùng cơ chế giảm giá khách — chỉ thu hoa hồng thẳng từ merchant (Fresha 20%, Booksy 30%, Treatwell ~35%+VAT) trên lượt đầu, vẫn thành công ở quy mô hàng chục triệu lượt/tháng. Rủi ro lớn nhất với PeakGlowUp: giảm giá thu hút đúng loại khách lệch với định vị "Verified" (khách vì rẻ, không phải vì tin tưởng đã kiểm định), và tràn khách vượt năng lực sẽ tạo review xấu — phá hỏng chính dữ liệu Verified Facts nuôi chiến lược SEO/AEO.</span></p>
+        </div>
+
+        <h3>2.2 — <span lang="en">Standard salary by role (Hà Tĩnh)</span><span lang="vi">Bảng lương chuẩn theo vai trò (Hà Tĩnh)</span></h3>
+        <p class="prose-narrow"><span lang="en">This is <strong>the</strong> standard pay table used throughout the model — one rate per role, not a range of scenarios. Each figure is the <strong>real annual company cost</strong>: gross salary already loaded <code>1.30×</code> (21.5% employer social insurance + 13th-month), converted at 1&nbsp;AUD&nbsp;=&nbsp;18,300&nbsp;VND. Bonus is added separately in §2.2b.</span><span lang="vi">Đây là bảng lương chuẩn <strong>duy nhất</strong> dùng xuyên suốt mô hình — một mức cho mỗi vai trò, không phải nhiều kịch bản. Mỗi con số là <strong>chi phí thật/năm của công ty</strong>: lương gross đã cộng hệ số tải <code>1,30×</code> (BHXH DN 21,5% + lương tháng 13), quy đổi ở 1&nbsp;AUD&nbsp;=&nbsp;18.300&nbsp;VND. Thưởng cộng riêng ở §2.2b.</span></p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th><span lang="en">Role</span><span lang="vi">Vai trò</span></th><th class="num"><span lang="en">Gross/month (VND)</span><span lang="vi">Lương gross/tháng (VND)</span></th><th class="num"><span lang="en">Base cost/year (AUD, loaded, no bonus)</span><span lang="vi">Chi phí cơ bản/năm (AUD, đã tải, chưa thưởng)</span></th></tr></thead>
+            <tbody>
+              <tr><td><span lang="en">Text-based closer</span><span lang="vi">Chốt sale nhắn tin</span></td><td class="num"><span lang="en">~10.8M</span><span lang="vi">~10,8tr</span></td><td class="num">$9,210</td></tr>
+              <tr><td><span lang="en">Phone-based closer</span><span lang="vi">Chốt sale gọi điện</span></td><td class="num"><span lang="en">~15.1M</span><span lang="vi">~15,1tr</span></td><td class="num">$12,894</td></tr>
+              <tr><td><span lang="en">Video producer</span><span lang="vi">Làm video</span></td><td class="num"><span lang="en">~15.1M</span><span lang="vi">~15,1tr</span></td><td class="num">$12,894</td></tr>
+              <tr><td><span lang="en">Page manager / photo</span><span lang="vi">Quản trang/ảnh</span></td><td class="num"><span lang="en">~10.8M</span><span lang="vi">~10,8tr</span></td><td class="num">$9,210</td></tr>
+              <tr><td><span lang="en">Dev, junior</span><span lang="vi">Dev junior</span></td><td class="num"><span lang="en">~21.6M</span><span lang="vi">~21,6tr</span></td><td class="num">$18,420</td></tr>
+              <tr><td><span lang="en">Dev, senior</span><span lang="vi">Dev senior</span></td><td class="num"><span lang="en">~38.9M</span><span lang="vi">~38,9tr</span></td><td class="num">$33,134</td></tr>
+              <tr><td><span lang="en">Manager (Ops/Leadership)</span><span lang="vi">Quản lý (Ops/Leadership)</span></td><td class="num"><span lang="en">~26.6M</span><span lang="vi">~26,6tr</span></td><td class="num">$22,711</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);"><span lang="en">The gross-VND column is the figure to quote a candidate; the AUD column is the loaded company cost that feeds the payroll model.</span><span lang="vi">Cột gross-VND là số để chào ứng viên; cột AUD là chi phí công ty đã tải, dùng để tính payroll.</span></p>
+
+        <h3>2.2b — <span lang="en">KPI bonus, two-way social insurance, and real take-home pay</span><span lang="vi">Thưởng KPI, BHXH hai chiều, tổng thu nhập thực nhận</span></h3>
+        <p class="prose-narrow"><span lang="en">Two different views of the same paycheck need to stay separate: what the <strong>company pays</strong> versus what the <strong>employee actually takes home</strong>.</span><span lang="vi">Hai góc nhìn khác nhau về cùng một khoản lương cần tách bạch: <strong>chi phí công ty phải trả</strong> so với <strong>nhân viên thực nhận</strong>.</span></p>
+        <ul class="plain">
+          <li><span lang="en"><strong>Company cost</strong> = Gross salary × 1.30 (21.5% employer social insurance + 13th-month) + KPI bonus (assumed exempt from social insurance as a separate performance payment).</span><span lang="vi"><strong>Chi phí công ty phải trả</strong> = Lương gross × 1,30 (BHXH DN 21,5% + lương 13) + Thưởng KPI (giả định không tính BHXH vì là khoản thưởng hiệu suất tách riêng).</span></li>
+          <li><span lang="en"><strong>Employee take-home</strong> = Gross salary × 0.895 (after the employee's own 10.5% social insurance deduction) + KPI bonus.</span><span lang="vi"><strong>Nhân viên thực nhận</strong> = Lương gross × 0,895 (sau khi trừ 10,5% BHXH phía người lao động) + Thưởng KPI.</span></li>
+        </ul>
+
+        <div class="table-wrap">
+          <span class="table-caption"><span lang="en">Assumed average KPI bonus (average performance, not maximum)</span><span lang="vi">Mức thưởng KPI trung bình giả định (đạt KPI mức trung bình, không phải tối đa)</span></span>
+          <table>
+            <thead><tr><th><span lang="en">Role</span><span lang="vi">Vai trò</span></th><th class="num"><span lang="en">Gross/mo</span><span lang="vi">Gross/tháng</span></th><th class="num"><span lang="en">Avg bonus %</span><span lang="vi">% thưởng TB</span></th><th class="num"><span lang="en">Bonus/mo</span><span lang="vi">Thưởng/tháng</span></th><th class="num"><span lang="en">Take-home/mo</span><span lang="vi">Net thực nhận/tháng</span></th><th class="num"><span lang="en">Company cost/yr (w/ bonus)</span><span lang="vi">Chi phí công ty/năm (gồm thưởng)</span></th></tr></thead>
+            <tbody>
+              <tr><td><span lang="en">Text-based closer</span><span lang="vi">Chốt sale nhắn tin</span></td><td class="num">$590</td><td class="num">20%</td><td class="num">$118</td><td class="num strong-cell">$646</td><td class="num">$10,628</td></tr>
+              <tr><td><span lang="en">Phone-based closer</span><span lang="vi">Chốt sale gọi điện</span></td><td class="num">$827</td><td class="num">25%</td><td class="num">$207</td><td class="num strong-cell">$947</td><td class="num">$15,373</td></tr>
+              <tr><td><span lang="en">Video producer</span><span lang="vi">Làm video</span></td><td class="num">$827</td><td class="num">15%</td><td class="num">$124</td><td class="num strong-cell">$864</td><td class="num">$14,381</td></tr>
+              <tr><td><span lang="en">Page manager / photo</span><span lang="vi">Quản trang/ảnh</span></td><td class="num">$590</td><td class="num">12%</td><td class="num">$71</td><td class="num strong-cell">$599</td><td class="num">$10,061</td></tr>
+              <tr><td><span lang="en">Dev, junior</span><span lang="vi">Dev junior</span></td><td class="num">$1,181</td><td class="num">12%</td><td class="num">$142</td><td class="num strong-cell">$1,199</td><td class="num">$20,120</td></tr>
+              <tr><td><span lang="en">Dev, senior</span><span lang="vi">Dev senior</span></td><td class="num">$2,124</td><td class="num">12%</td><td class="num">$255</td><td class="num strong-cell">$2,156</td><td class="num">$36,193</td></tr>
+              <tr><td><span lang="en">Manager (Ops/Leadership)</span><span lang="vi">Quản lý (Ops/Leadership)</span></td><td class="num">$1,456</td><td class="num">20%</td><td class="num">$291</td><td class="num strong-cell">$1,594</td><td class="num">$26,205</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);"><span lang="en">"Take-home/mo" is the number to use when discussing pay with a candidate — not gross. "Company cost/yr" already includes the bonus and is what feeds the payroll model below.</span><span lang="vi">"Net thực nhận/tháng" là số nên dùng khi trao đổi lương với ứng viên, không phải lương gross. "Chi phí công ty/năm" đã gồm thưởng, dùng để tính payroll ở bảng 2.4.</span></p>
+
+        <h3>2.2c — <span lang="en">Office, computers, and utilities by milestone</span><span lang="vi">Chi phí văn phòng, máy tính, điện nước theo mốc</span></h3>
+        <p class="prose-narrow"><strong><span lang="en">Key assumption:</span><span lang="vi">Giả định quan trọng:</span></strong> <span lang="en">not all VN staff sit in an office. The fanpage/video team (largest group, 74.6% of headcount at scale) and the booking-conversion team work remotely — common practice in Vietnam for this kind of work, no shared space needed. Only <strong>Dev/AI + Ops + Ads</strong> need a physical office to collaborate.</span><span lang="vi">không phải tất cả nhân sự VN đều ngồi văn phòng. Đội fanpage/video (đông nhất, 74,6% nhân sự ở quy mô lớn) và đội chốt đơn làm từ xa — phổ biến ở VN, không cần mặt bằng chung. Chỉ <strong>Dev/AI + Ops + Ads</strong> cần văn phòng vật lý.</span></p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th><span lang="en">Milestone</span><span lang="vi">Mốc</span></th><th class="num"><span lang="en">In-office headcount<br>(Dev+Ops+Ads)</span><span lang="vi">Số người tại văn phòng<br>(Dev+Ops+Ads)</span></th><th class="num"><span lang="en">Rent/mo</span><span lang="vi">Thuê mặt bằng/tháng</span></th><th class="num"><span lang="en">Computers<br>(3-yr amortized)</span><span lang="vi">Máy tính<br>(khấu hao 3 năm)</span></th><th class="num"><span lang="en">Utilities/mo</span><span lang="vi">Điện/nước/mạng/tháng</span></th></tr></thead>
+            <tbody>
+              <tr><td class="strong-cell">50</td><td class="num">8</td><td class="num">$492</td><td class="num">$2,624/yr</td><td class="num">$164</td></tr>
+              <tr><td class="strong-cell">100</td><td class="num">11</td><td class="num">$655</td><td class="num">$3,608/yr</td><td class="num">$164</td></tr>
+              <tr><td class="strong-cell">300</td><td class="num">18</td><td class="num">$1,366</td><td class="num">$5,904/yr</td><td class="num">$328</td></tr>
+              <tr><td class="strong-cell">700</td><td class="num">29</td><td class="num">$2,459</td><td class="num">$9,512/yr</td><td class="num">$546</td></tr>
+              <tr><td class="strong-cell">1,000</td><td class="num">37</td><td class="num">$3,279</td><td class="num">$12,136/yr</td><td class="num">$710</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);"><span lang="en">Total office+computer+utilities/year: $10,493 (50) · $13,444 (100) · $26,231 (300) · $45,577 (700) · $60,005 (1,000). Rent uses the given $8–10M VND/mo reference for the small-scale tier, extrapolated upward for larger headcounts — needs a real Hà Tĩnh quote before signing a lease. Computers amortized over a 3-year cycle (~18M VND / $984 per workstation) rather than expensed in one lump year.</span><span lang="vi">Tổng chi phí văn phòng+máy tính+điện nước/năm: $10.493 (50) · $13.444 (100) · $26.231 (300) · $45.577 (700) · $60.005 (1.000). Thuê mặt bằng dùng đúng mốc 8–10tr/tháng bạn cho làm chuẩn quy mô nhỏ, ngoại suy tăng dần — cần báo giá thật ở Hà Tĩnh trước khi ký. Máy tính tính khấu hao 3 năm (~18tr/máy, ~$984) thay vì tính một cục.</span></p>
+
+        <div class="kv-list">
+          <div><b>Fanpage</b> <span lang="en">(video+page blend 1:1) = $12,221/yr/head</span><span lang="vi">(blend video+quản trang 1:1) = $12.221/năm/người</span></div>
+          <div><b><span lang="en">Booking conversion</span><span lang="vi">Chốt đơn</span></b> <span lang="en">(80% text/20% phone blend) = $11,577/yr/head</span><span lang="vi">(blend 80% nhắn tin/20% gọi điện) = $11.577/năm/người</span></div>
+          <div><b>Ads</b> <span lang="en">(team-lead rate) = $26,205/yr/head</span><span lang="vi">(mức quản lý) = $26.205/năm/người</span></div>
+          <div><b>Dev</b> <span lang="en">(60% junior/40% senior blend) = $26,549/yr/head</span><span lang="vi">(blend 60% junior/40% senior) = $26.549/năm/người</span></div>
+          <div><b>Ops</b> <span lang="en">(team-lead rate) = $26,205/yr/head</span><span lang="vi">(mức quản lý) = $26.205/năm/người</span></div>
+          <div><b><span lang="en">AU team</span><span lang="vi">Đội Úc</span></b> <span lang="en">= AU$100,000/yr/head (unchanged, an Australian salary)</span><span lang="vi">= AU$100.000/năm/người (không đổi, lương Úc)</span></div>
+        </div>
+
+        <h3>2.3 — <span lang="en">Headcount by milestone</span><span lang="vi">Bảng nhân sự theo mốc</span></h3>
+        <div class="callout callout--info">
+          <span class="callout__label"><span lang="en">The AU team is not a fixed cost from day one</span><span lang="vi">Đội Úc không phải chi phí cố định từ đầu</span></span>
+          <p><span lang="en">For the first 50–100 merchants, <strong>the Founder personally does the selling AND the vetting</strong> (one visit does both the pitch and the quality check) — this cost isn't in payroll because it's already compensated through the 55% profit share. Only around ~200–300 does hiring start, scaling with the physical limit of vetting (~300–400 visits/year/person).</span><span lang="vi">Ở 50–100 merchant đầu, <strong>Founder tự đi kiếm khách + tự thẩm định</strong> (một chuyến vừa chào hàng vừa kiểm định) — chi phí này không nằm trong payroll vì đã trả qua phần chia lợi nhuận 55%. Chỉ khi lên ~200–300 mới thuê thêm, tăng dần theo giới hạn vật lý của thẩm định (~300–400 lượt/năm/người).</span></p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th><span lang="en">Milestone</span><span lang="vi">Mốc</span></th><th class="num"><span lang="en">Fanpage<br>(4:20)</span><span lang="vi">Fanpage<br>(4:20)</span></th><th class="num"><span lang="en">Conversion<br>(6:100 A)</span><span lang="vi">Chốt đơn<br>(6:100 A)</span></th><th class="num">Ads<br>(3:100 A)</th><th class="num"><span lang="en">AU team</span><span lang="vi">Đội Úc</span></th><th class="num">Dev/AI</th><th class="num">Ops</th><th class="num"><span lang="en">Total</span><span lang="vi">Tổng</span></th></tr></thead>
+            <tbody>
+              <tr><td class="strong-cell">50</td><td class="num">10</td><td class="num">1</td><td class="num">1</td><td class="num"><span lang="en">0 — Founder-only</span><span lang="vi">0 — Founder solo</span></td><td class="num">5</td><td class="num">2</td><td class="num strong-cell">19</td></tr>
+              <tr><td class="strong-cell">100</td><td class="num">20</td><td class="num">2</td><td class="num">1</td><td class="num">1</td><td class="num">7</td><td class="num">3</td><td class="num strong-cell">34</td></tr>
+              <tr><td class="strong-cell">300</td><td class="num">60</td><td class="num">6</td><td class="num">3</td><td class="num">3</td><td class="num">10</td><td class="num">5</td><td class="num strong-cell">87</td></tr>
+              <tr><td class="strong-cell">700</td><td class="num">140</td><td class="num">15</td><td class="num">7</td><td class="num">7</td><td class="num">14</td><td class="num">8</td><td class="num strong-cell">191</td></tr>
+              <tr><td class="strong-cell">1,000</td><td class="num">200</td><td class="num">21</td><td class="num">11</td><td class="num">10</td><td class="num">16</td><td class="num">10</td><td class="num strong-cell">268</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>2.4 — <span lang="en">Revenue, cost, profit before Founder/Cofounder split (AUD)</span><span lang="vi">Doanh thu, chi phí, lợi nhuận trước phân phối Founder/Cofounder (AUD)</span></h3>
+
+        <div class="stat-strip">
+          <div class="stat-cell"><div class="stat-cell__n">50</div><div class="stat-cell__v">61.3%</div><div class="stat-cell__bar"><span style="width:61.3%"></span></div></div>
+          <div class="stat-cell"><div class="stat-cell__n">100</div><div class="stat-cell__v">63.5%</div><div class="stat-cell__bar"><span style="width:63.5%"></span></div></div>
+          <div class="stat-cell"><div class="stat-cell__n">300</div><div class="stat-cell__v">68.5%</div><div class="stat-cell__bar"><span style="width:68.5%"></span></div></div>
+          <div class="stat-cell"><div class="stat-cell__n">700</div><div class="stat-cell__v">72.4%</div><div class="stat-cell__bar"><span style="width:72.4%"></span></div></div>
+          <div class="stat-cell"><div class="stat-cell__n">1,000</div><div class="stat-cell__v">74.6%</div><div class="stat-cell__bar"><span style="width:74.6%"></span></div></div>
+        </div>
+        <p class="stat-strip-caption"><span lang="en">Margin before Founder/Cofounder distribution, at each scale milestone</span><span lang="vi">Biên lợi nhuận trước phân phối Founder/Cofounder, theo từng mốc quy mô</span></p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th><span lang="en">Milestone</span><span lang="vi">Mốc</span></th><th class="num"><span lang="en">Revenue</span><span lang="vi">Doanh thu</span></th><th class="num"><span lang="en">Payroll (w/ bonus)</span><span lang="vi">Payroll (gồm thưởng)</span></th><th class="num"><span lang="en">Staff referral comm.*</span><span lang="vi">Hoa hồng NV (5%)*</span></th><th class="num"><span lang="en">Office+PC+utilities</span><span lang="vi">Văn phòng+máy tính+điện nước</span></th><th class="num"><span lang="en">Other costs</span><span lang="vi">Chi phí khác</span></th><th class="num"><span lang="en">Profit before split</span><span lang="vi">Lợi nhuận trước phân phối</span></th><th class="num"><span lang="en">Margin</span><span lang="vi">Biên LN</span></th></tr></thead>
+            <tbody>
+              <tr><td class="strong-cell">50</td><td class="num">$1,125,000</td><td class="num">$345,147</td><td class="num">$0</td><td class="num">$10,493</td><td class="num">$80,000</td><td class="num strong-cell">$689,360</td><td class="num strong-cell">61.3%</td></tr>
+              <tr><td class="strong-cell">100</td><td class="num">$2,250,000</td><td class="num">$658,237</td><td class="num">$0</td><td class="num">$13,444</td><td class="num">$150,000</td><td class="num strong-cell">$1,428,319</td><td class="num strong-cell">63.5%</td></tr>
+              <tr><td class="strong-cell">300</td><td class="num">$6,750,000</td><td class="num">$1,577,852</td><td class="num">$225,000</td><td class="num">$26,231</td><td class="num">$300,000</td><td class="num strong-cell">$4,620,917</td><td class="num strong-cell">68.5%</td></tr>
+              <tr><td class="strong-cell">700</td><td class="num">$15,750,000</td><td class="num">$3,349,356</td><td class="num">$450,000</td><td class="num">$45,577</td><td class="num">$500,000</td><td class="num strong-cell">$11,405,067</td><td class="num strong-cell">72.4%</td></tr>
+              <tr class="row-highlight"><td class="strong-cell">1,000</td><td class="num">$22,500,000</td><td class="num">$4,662,406</td><td class="num">$337,500</td><td class="num">$60,005</td><td class="num">$650,000</td><td class="num strong-cell">$16,790,089</td><td class="num strong-cell">74.6%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);"><span lang="en">*Staff referral commission — 5% of a referred merchant's first-year contract revenue, once — on the estimated new merchants per milestone × $1,125 blended value. At the 50–100 milestones there's no AU staff yet (§2.3), so this cost is $0; it starts at the 300 milestone.</span><span lang="vi">*Hoa hồng môi giới nhân viên — 5% doanh thu hợp đồng năm đầu của merchant được giới thiệu, một lần — trên số merchant mới ước lượng × $1.125/khách. Ở mốc 50–100 chưa có đội Úc (§2.3) nên chi phí này bằng $0; bắt đầu từ mốc 300.</span></p>
+
+        <div class="callout callout--info">
+          <span class="callout__label"><span lang="en">Read the column label carefully</span><span lang="vi">Lưu ý về nhãn cột</span></span>
+          <p><span lang="en">"Profit before split" here is <strong>not yet</strong> what Founder, Cofounder, or staff actually take home — it still passes through a company reserve, then splits 55/40/5. See the full distribution table in Part 3C.</span><span lang="vi">"Lợi nhuận trước phân phối" ở đây <strong>chưa phải</strong> số Founder/Cofounder/nhân sự thực nhận — còn phải qua quỹ dự phòng rồi mới chia 55/40/5. Xem bảng phân phối đầy đủ ở Phần 3C.</span></p>
+        </div>
+        <div class="callout callout--warn">
+          <span class="callout__label"><span lang="en">The trade-off to keep in view</span><span lang="vi">Đánh đổi cần thấy rõ</span></span>
+          <p><span lang="en">This margin is <strong>conditional — the Founder must genuinely do the vetting and selling himself</strong>, bounded by one person's real capacity (~300–400 vetting visits/year full-time, fewer if also selling). This is exactly why "the 100 milestone" is the sensible Year-1 ceiling (see Part 4) — outgrowing one person's capacity before there's real data on when to hire is an operating risk, not a financial one.</span><span lang="vi">Biên lợi nhuận này <strong>có điều kiện — Founder phải thật sự tự đi thẩm định + kiếm khách</strong>, giới hạn bởi sức một người (~300–400 lượt thẩm định/năm nếu toàn thời gian, ít hơn nếu kiêm sales). Đây là lý do "mốc 100" là ngưỡng hợp lý năm 1 (xem Phần 4) — vượt sức một người trước khi có số liệu thật để biết khi nào cần thuê thêm là rủi ro vận hành, không phải rủi ro tài chính.</span></p>
+        </div>
+
+        <h3>2.5 — <span lang="en">The biggest headcount lever: the fanpage team, not booking conversion</span><span lang="vi">Đòn bẩy nhân sự lớn nhất: đội fanpage, không phải chốt đơn</span></h3>
+        <p><span lang="en">At the 1,000-client milestone, <strong>the fanpage team is 200/268 people = 74.6% of headcount</strong>, though only <strong>52.4% of payroll</strong>. The "booking conversion" team — the one everyone worried about most because its ratio was never measured — is only 21 people (7.8% of headcount, 5.2% of payroll).</span><span lang="vi">Ở mốc 1.000 khách, <strong>đội fanpage chiếm 200/268 người = 74,6% tổng nhân sự</strong>, dù chỉ chiếm <strong>52,4% payroll</strong>. Đội "chốt đơn" — lo lắng nhất từ đầu vì chưa đo được tỷ lệ — chỉ chiếm 21 người (7,8% nhân sự, 5,2% payroll).</span></p>
+        <p><span lang="en">AI generates video fast, but <strong>managing each fanpage</strong> (scheduling, picking images, keeping brand consistent, approving content) is per-account work that doesn't compress with AI as well as answering messages does. The 4:20 ratio (0.2 people/client) is 3.3× heavier than the 6:100 conversion-team ratio (0.06 people/client).</span><span lang="vi">AI tạo video nhanh, nhưng <strong>quản lý từng fanpage</strong> (lên lịch, chọn ảnh, giữ đúng brand, duyệt nội dung) là việc theo từng tài khoản, không nén bằng AI tốt như trả lời tin nhắn. Tỷ lệ 4:20 (0,2 người/khách) nặng hơn tỷ lệ chốt đơn 6:100 (0,06 người/khách) tới <strong>3,3 lần</strong>.</span></p>
+
+        <div class="table-wrap">
+          <span class="table-caption"><span lang="en">If the fanpage ratio improves from 4:20 to 4:40 (at the 1,000 milestone)</span><span lang="vi">Nếu tỷ lệ fanpage cải thiện từ 4:20 lên 4:40 (ở mốc 1.000)</span></span>
+          <table>
+            <thead><tr><th></th><th class="num"><span lang="en">Current (4:20)</span><span lang="vi">Hiện tại (4:20)</span></th><th class="num"><span lang="en">Improved (4:40)</span><span lang="vi">Cải thiện (4:40)</span></th></tr></thead>
+            <tbody>
+              <tr><td><span lang="en">Fanpage headcount</span><span lang="vi">Người đội fanpage</span></td><td class="num">200</td><td class="num strong-cell">100</td></tr>
+              <tr><td><span lang="en">Fanpage payroll/yr</span><span lang="vi">Payroll fanpage/năm</span></td><td class="num">$2,444,200</td><td class="num strong-cell">$1,222,100</td></tr>
+              <tr><td><span lang="en">Profit before split</span><span lang="vi">Lợi nhuận trước phân phối</span></td><td class="num">$16,790,089</td><td class="num strong-cell">$18,012,189</td></tr>
+              <tr><td><span lang="en">Margin</span><span lang="vi">Biên lợi nhuận</span></td><td class="num">74.6%</td><td class="num strong-cell">80.1%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout--finding">
+          <span class="callout__label"><span lang="en">Where to invest</span><span lang="vi">Ưu tiên đầu tư</span></span>
+          <p><span lang="en">Internal tooling for fanpage-team throughput — posting templates, reusable content libraries by industry, batch approval — not faster video generation (already fast enough).</span><span lang="vi">Công cụ nội bộ cho fanpage-team: template lịch đăng, thư viện content tái dùng theo ngành, duyệt hàng loạt — không phải tạo video nhanh hơn (đã đủ nhanh).</span></p>
+        </div>
+      </section>
+
+      <!-- ============ PART 3 ============ -->
+      <section class="part" id="part-3">
+        <div class="part-header"><span class="part-header__num">03</span><h2><span lang="en">Unverified assumptions</span><span lang="vi">Cảnh báo giả định chưa kiểm chứng</span></h2></div>
+        <p class="part-sub"><span lang="en">Seven numbers drive the entire profit model above, and none of them are real data yet.</span><span lang="vi">Bảy con số quyết định toàn bộ bảng lợi nhuận trên chưa có dữ liệu thật.</span></p>
+
+        <ol class="plain">
+          <li><span lang="en"><strong>Average booking value ($60–70)</strong> — needs measuring from the current 10–15 merchants.</span><span lang="vi"><strong>Giá trị trung bình/đơn ($60–70)</strong> — cần đo từ 10–15 merchant hiện tại.</span></li>
+          <li><span lang="en"><strong>Booking-conversion team ratio (6 people/100 Package-3 clients)</strong> — depends on real daily message volume and how much AI resolves on its own; not yet measured.</span><span lang="vi"><strong>Tỷ lệ đội chốt đơn (6 người/100 khách Gói 3)</strong> — phụ thuộc khối lượng tin nhắn thật/ngày, tỷ lệ AI tự xử lý, chưa đo.</span></li>
+          <li><span lang="en"><strong>Package 1/2/3 client mix (currently 65/?/35 assumed, Package 2 not yet split out)</strong> — a market assumption, not a real survey.</span><span lang="vi"><strong>Tỷ lệ khách Gói 1/2/3 (giả định hiện tại 65/?/35, chưa tách Gói 2)</strong> — giả định thị trường, chưa khảo sát thật.</span></li>
+          <li><span lang="en"><strong>Hà Tĩnh salary by role</strong> — derived from the regional minimum wage plus typical regional differentials, not real hiring data for this specific province (no source breaks it out separately). Could be off by ±20–30%.</span><span lang="vi"><strong>Lương Hà Tĩnh theo vai trò</strong> — suy từ lương tối thiểu vùng + chênh lệch vùng miền thông thường, không phải số liệu tuyển dụng thật. Sai lệch có thể ±20–30%.</span></li>
+          <li><span lang="en"><strong>New merchants/year at each milestone</strong> (used for referral commission) — inferred from the gap between milestones, not net of real churn.</span><span lang="vi"><strong>Số merchant mới/năm ở mỗi mốc</strong> (dùng tính hoa hồng) — suy từ chênh lệch giữa các mốc, chưa trừ churn thật.</span></li>
+          <li><span lang="en"><strong>The real cost to acquire 1 new customer via ads in Australia</strong> — likely the riskiest assumption in the whole model. AU local-service benchmarks: CPA $12–18 (optimized campaign) up to CPL $43–85 (general lead, before lead→booking conversion) — converting "$2,000 ads → new customers/month" spans a wide range from <strong>~5 to ~167 customers/month</strong> depending on scenario, i.e. potentially off by more than 30× from the 100–200 assumption used throughout this model. For comparison: the Vietnam benchmark (~30,000 VND/customer ≈ AU$1.64) is roughly 7–11× cheaper than the best-case AU scenario. Needs real pilot measurement, higher priority than assumption (1).</span><span lang="vi"><strong>Chi phí thật để có 1 khách mới qua ads tại Úc</strong> — đây có thể là giả định rủi ro nhất trong toàn bộ mô hình. Benchmark thị trường Úc cho ngành dịch vụ địa phương: CPA $12–18 (campaign đã tối ưu) tới CPL $43–85 (lead chung, chưa tính tỷ lệ chuyển thành booking) — quy đổi ra "$2.000 ads → khách mới/tháng" cho dải kết quả rộng từ <strong>~5 đến ~167 khách/tháng tùy kịch bản</strong>, tức có thể lệch tới hơn 30 lần so với giả định 100–200 đang dùng xuyên suốt mô hình. So sánh: benchmark Việt Nam (~30.000đ/khách ≈ AU$1,64) rẻ hơn Úc khoảng 7–11 lần ở kịch bản Úc tốt nhất. Cần đo thật ở giai đoạn pilot, ưu tiên cao hơn cả giả định (1).</span></li>
+          <li><span lang="en" style="text-decoration:line-through;opacity:0.6;">Effectiveness of the two-way discount mechanism in Package 3</span><span lang="vi" style="text-decoration:line-through;opacity:0.6;">Hiệu quả cơ chế chiết khấu 2 chiều ở Gói 3</span> — <strong><span lang="en">dropped.</span><span lang="vi">đã loại bỏ.</span></strong> <span lang="en">Final decision: no promotions/discounts to attract customers (Groupon risk — see §2.1d), keep a flat 20% commission charged on both new and returning customers already inside PGU's managed system. The remaining thing to measure: <strong>the share of reactivated returning customers within the "100–200 customers/month" pool</strong> — the higher that share, the lighter the ad-cost burden (reduces the risk in assumption #6), since reactivation costs almost nothing in ad spend, only conversion-team labor.</span><span lang="vi">Quyết định cuối: không dùng khuyến mãi/giảm giá để kéo khách (rủi ro Groupon — xem §2.1d), giữ nguyên 20% hoa hồng thu đều trên cả khách mới lẫn khách cũ đã qua hệ thống PGU quản lý. Giả định còn lại cần đo: <strong>tỷ lệ khách cũ tái kích hoạt trong khối "100–200 khách/tháng"</strong> — tỷ lệ này càng cao thì chi phí ads càng nhẹ (giảm rủi ro giả định #6) vì tái kích hoạt gần như không tốn ads, chỉ tốn công đội chốt đơn.</span></li>
+        </ol>
+
+        <div class="callout callout--risk">
+          <span class="callout__label"><span lang="en">Scope of use</span><span lang="vi">Giới hạn sử dụng</span></span>
+          <p><span lang="en">An error in number (1), (3), or (6) shifts revenue by <strong>±20–30% up to more than 10×</strong> at every milestone, depending on the number. This model is for <strong>directional decisions</strong> (industry sequencing, fanpage-tooling investment, hiring pace) — not for commitments to investors or banks until it's measured.</span><span lang="vi">Sai lệch ở con số (1), (3), hoặc (6) làm doanh thu lệch <strong>±20–30% tới hơn 10 lần</strong> ở mọi mốc, tùy con số. Dùng để <strong>định hướng quyết định</strong> — không dùng để cam kết với nhà đầu tư/ngân hàng cho đến khi đo xong.</span></p>
+        </div>
+      </section>
+
+      <!-- ============ PART 3B ============ -->
+      <section class="part" id="part-3b">
+        <div class="part-header"><span class="part-header__num">03B</span><h2><span lang="en">Base pay, bonus &amp; retention structure</span><span lang="vi">Cơ cấu lương cơ bản + thưởng + giữ chân</span></h2></div>
+
+        <blockquote><p><span lang="en">Base pay so people don't leave for lack of money to live on. Bonus to make them work better. Real retention comes from a "leaving forfeits something" mechanism, not high pay alone.</span><span lang="vi">Lương cơ bản để KHÔNG bị rời đi vì thiếu tiền sống. Thưởng để làm việc tốt hơn. Giữ chân thật sự đến từ cơ chế "rời là mất", không phải lương cao đơn thuần.</span></p></blockquote>
+
+        <h3><span lang="en">Base pay + KPI bonus by role</span><span lang="vi">Bảng lương cơ bản + KPI thưởng theo vai trò</span></h3>
+        <p class="prose-narrow"><span lang="en">Standard base pay (§2.2). See §2.2b for the full picture: gross → net after employee social insurance → plus bonus → real monthly take-home.</span><span lang="vi">Lương cơ bản chuẩn (§2.2). Xem §2.2b để có bảng đầy đủ: gross → net sau BHXH NLĐ → cộng thưởng → tổng thu nhập thực nhận/tháng.</span></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th><span lang="en">Role</span><span lang="vi">Vai trò</span></th><th class="num"><span lang="en">Base/yr</span><span lang="vi">Lương cơ bản/năm</span></th><th class="num"><span lang="en">Real take-home/yr (w/ avg bonus)</span><span lang="vi">Thực nhận/năm (gồm thưởng TB)</span></th><th><span lang="en">Bonus tied to which KPI</span><span lang="vi">Thưởng gắn với KPI nào</span></th></tr></thead>
+            <tbody>
+              <tr><td><span lang="en">Text-based closer</span><span lang="vi">Chốt sale nhắn tin</span></td><td class="num">$9,210</td><td class="num">~$7,752</td><td><span lang="en">Bookings <strong>that actually checked in</strong>, not bookings created — bonusing on creation alone invites padding the count, spikes no-shows, and corrupts the Verified Facts data</span><span lang="vi">Booking <strong>đã check-in thật</strong>, không phải booking tạo ra — thưởng theo tạo ra sẽ khiến chốt bừa, no-show tăng, hỏng dữ liệu Verified Facts</span></td></tr>
+              <tr><td><span lang="en">Phone-based closer</span><span lang="vi">Chốt sale gọi điện</span></td><td class="num">$12,894</td><td class="num">~$11,364</td><td><span lang="en">Higher per-booking bonus than text + a separate bonus for escalations text couldn't close — harder work needs a distinct reward so no one avoids it</span><span lang="vi">Thưởng/đơn cao hơn nhắn tin + thưởng riêng cho ca escalation — việc khó hơn cần thưởng phân biệt để không ai né</span></td></tr>
+              <tr><td><span lang="en">Video producer</span><span lang="vi">Làm video</span></td><td class="num">$12,894</td><td class="num">~$10,368</td><td><span lang="en">% of content approved first pass + real engagement, not volume — AI makes video cheap, so volume stopped being the value</span><span lang="vi">% nội dung duyệt qua lần đầu + tương tác thực tế, không theo số lượng — AI làm video rẻ, số lượng không còn là giá trị</span></td></tr>
+              <tr><td><span lang="en">Page manager / photo</span><span lang="vi">Quản trang/ảnh</span></td><td class="num">$9,210</td><td class="num">~$7,188</td><td><span lang="en">On-schedule posting + satisfaction of the merchant they manage</span><span lang="vi">Đăng đúng lịch + hài lòng của merchant phụ trách</span></td></tr>
+              <tr><td><span lang="en">Dev, junior</span><span lang="vi">Dev junior</span></td><td class="num">$18,420</td><td class="num">~$14,388</td><td><span lang="en">Sprint completion + low bug rate, not lines of code — the role most likely to job-hop, since the skill is portable and competes with the national remote market</span><span lang="vi">Hoàn thành sprint + tỷ lệ lỗi thấp, không theo dòng code — vai trò dễ nhảy việc nhất, cạnh tranh với thị trường remote toàn quốc</span></td></tr>
+              <tr><td><span lang="en">Dev, senior</span><span lang="vi">Dev senior</span></td><td class="num">$33,134</td><td class="num">~$25,872</td><td><span lang="en">Same as above</span><span lang="vi">Như trên</span></td></tr>
+              <tr><td><span lang="en">Manager (Ops/Leadership)</span><span lang="vi">Quản lý (Ops/Leadership)</span></td><td class="num">$22,711</td><td class="num">~$19,128</td><td><span lang="en">Whole-team performance + <strong>docked if the team loses someone</strong> — the only way a manager genuinely cares about retention</span><span lang="vi">Hiệu suất cả đội + <strong>bị trừ nếu đội có người nghỉ việc</strong> — cách duy nhất khiến quản lý thật sự lo giữ người</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3><span lang="en">Three retention mechanisms</span><span lang="vi">Ba cơ chế giữ chân</span></h3>
+        <ol class="plain">
+          <li><span lang="en"><strong>Quarterly bonus, 30% deferred</strong> — 70% of bonus paid monthly, 30% held and paid at quarter-end, forfeited if the person leaves before the payout date.</span><span lang="vi"><strong>Thưởng quý, trả trễ 30%</strong> — 70% trả theo tháng, 30% dồn trả cuối quý, mất nếu nghỉ trước ngày chốt sổ.</span></li>
+          <li><span lang="en"><strong>The 5% profit pool (from the 60/40 Founder/Cofounder split), allocated by points (role × tenure), not split evenly per head:</strong></span><span lang="vi"><strong>Quỹ 5% lợi nhuận, chia theo điểm (vai trò × thâm niên), không chia đều đầu người:</strong></span>
+            <code class="formula" lang="en">Points per person&nbsp;=&nbsp;Role points × Tenure multiplier
+Tenure multiplier:&nbsp; year 1 = <em class="res">1.0×</em>&nbsp;·&nbsp; year 2 = <em class="res">1.3×</em>&nbsp;·&nbsp; year 3+ = <em class="res">1.6×</em></code>
+            <code class="formula" lang="vi">Điểm mỗi người&nbsp;=&nbsp;Điểm vai trò × Hệ số thâm niên
+Hệ số thâm niên:&nbsp; năm 1 = <em class="res">1,0×</em>&nbsp;·&nbsp; năm 2 = <em class="res">1,3×</em>&nbsp;·&nbsp; năm 3+ = <em class="res">1,6×</em></code>
+            <span lang="en">Paid once a year, only to staff still employed on the payout date.</span><span lang="vi">Trả 1 lần/năm, chỉ cho người còn làm tại ngày chốt sổ.</span>
+          </li>
+          <li><span lang="en"><strong>Training-cost clawback clause</strong> (legal in Vietnam, stronger than an unenforceable non-compete) — leaving within 12 months of company-funded training (English, AI tools) triggers partial repayment.</span><span lang="vi"><strong>Điều khoản hoàn phí đào tạo</strong> (hợp pháp ở VN, mạnh hơn non-compete) — nghỉ trong 12 tháng đầu sau đào tạo riêng (tiếng Anh, công cụ AI) thì hoàn trả một phần chi phí.</span></li>
+        </ol>
+
+        <div class="callout callout--warn">
+          <span class="callout__label"><span lang="en">Special priority</span><span lang="vi">Ưu tiên đặc biệt</span></span>
+          <p><span lang="en">The fanpage/video team (74.6% of headcount at scale) needs a clear promotion ladder (junior → senior → team lead) — this is the largest group and the one most likely to churn en masse during scale-up if there's no path up.</span><span lang="vi">Đội fanpage/video (74,6% nhân sự ở quy mô lớn) cần lộ trình thăng tiến rõ (junior → senior → team lead) — nhóm đông nhất, dễ nghỉ hàng loạt nhất khi scale nếu không có đường lên.</span></p>
+        </div>
+      </section>
+
+      <!-- ============ PART 3C ============ -->
+      <section class="part" id="part-3c">
+        <div class="part-header"><span class="part-header__num">03C</span><h2><span lang="en">Founder &amp; Cofounder profit split</span><span lang="vi">Phân phối lợi nhuận Founder &amp; Cofounder</span></h2></div>
+
+        <h3>3C.1 — <span lang="en">The monthly distribution waterfall</span><span lang="vi">Thác nước phân phối lợi nhuận hàng tháng</span></h3>
+        <p class="prose-narrow"><span lang="en">After Payroll and all costs, the profit before split (§2.4) passes through a company reserve, then splits three ways:</span><span lang="vi">Sau Payroll và mọi chi phí, lợi nhuận trước phân phối (§2.4) đi qua quỹ dự phòng, rồi chia làm ba:</span></p>
+
+        <code class="formula" lang="en">PROFIT BEFORE SPLIT  (Part 2.4 table, already net of Payroll and all costs)
+&nbsp; − Company reserve, 15–20%  ← held back, NOT fully distributed
+&nbsp; = <em class="res">REMAINING TO SPLIT</em>
+&nbsp;     → Founder 55%
+&nbsp;     → Cofounder 40%
+&nbsp;     → Staff pool 5%  (the same pool from §3B.3, by role × tenure points)</code>
+        <code class="formula" lang="vi">LỢI NHUẬN TRƯỚC PHÂN PHỐI  (bảng §2.4, đã trừ Payroll và mọi chi phí)
+&nbsp; − Quỹ dự phòng công ty 15–20%  ← giữ lại, KHÔNG chia hết
+&nbsp; = <em class="res">CÒN LẠI ĐỂ CHIA</em>
+&nbsp;     → Founder 55%
+&nbsp;     → Cofounder 40%
+&nbsp;     → Quỹ nhân sự 5%  (chính là quỹ ở §3B.3, chia theo điểm vai trò × thâm niên)</code>
+
+        <div class="callout callout--warn">
+          <span class="callout__label"><span lang="en">Why hold back a 15–20% reserve</span><span lang="vi">Vì sao cần quỹ dự phòng 15–20%</span></span>
+          <p><span lang="en">Company tax is usually settled quarterly or annually, not monthly — distributing 100% of monthly profit leaves nothing on hand when the tax bill or an unexpected merchant dispute lands. 15% is the acceptable floor; 20% is safer in a volatile month or industry.</span><span lang="vi">Thuế doanh nghiệp thường quyết toán theo quý/năm, không phải theo tháng — chia sạch 100% lợi nhuận tháng nghĩa là không còn tiền khi hóa đơn thuế đến hoặc phát sinh tranh chấp merchant. 15% là mức tối thiểu chấp nhận được; 20% an toàn hơn nếu tháng/ngành biến động.</span></p>
+        </div>
+
+        <h3>3C.2 — <span lang="en">Distribution table by milestone (15% reserve)</span><span lang="vi">Bảng phân phối theo mốc (quỹ dự phòng 15%)</span></h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th><span lang="en">Milestone</span><span lang="vi">Mốc</span></th><th class="num"><span lang="en">Profit before split</span><span lang="vi">Lợi nhuận trước phân phối</span></th><th class="num"><span lang="en">Reserve 15%</span><span lang="vi">Quỹ dự phòng 15%</span></th><th class="num"><span lang="en">Remaining to split</span><span lang="vi">Còn lại để chia</span></th><th class="num"><span lang="en">Founder 55%</span><span lang="vi">Founder 55%</span></th><th class="num"><span lang="en">Cofounder 40%</span><span lang="vi">Cofounder 40%</span></th><th class="num"><span lang="en">Staff pool 5%</span><span lang="vi">Quỹ nhân sự 5%</span></th></tr></thead>
+            <tbody>
+              <tr><td class="strong-cell">50</td><td class="num">$689,360</td><td class="num">$103,404</td><td class="num">$585,956</td><td class="num">$322,276</td><td class="num">$234,382</td><td class="num">$29,298</td></tr>
+              <tr><td class="strong-cell">100</td><td class="num">$1,428,319</td><td class="num">$214,248</td><td class="num">$1,214,071</td><td class="num">$667,739</td><td class="num">$485,628</td><td class="num">$60,704</td></tr>
+              <tr><td class="strong-cell">300</td><td class="num">$4,620,917</td><td class="num">$693,138</td><td class="num">$3,927,779</td><td class="num">$2,160,278</td><td class="num">$1,571,112</td><td class="num">$196,389</td></tr>
+              <tr><td class="strong-cell">700</td><td class="num">$11,405,067</td><td class="num">$1,710,760</td><td class="num">$9,694,307</td><td class="num">$5,331,869</td><td class="num">$3,877,723</td><td class="num">$484,715</td></tr>
+              <tr class="row-highlight"><td class="strong-cell">1,000</td><td class="num">$16,790,089</td><td class="num">$2,518,513</td><td class="num">$14,271,576</td><td class="num">$7,849,367</td><td class="num">$5,708,630</td><td class="num">$713,579</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);"><span lang="en">The staff pool is the same one from §3B.3 — not a second pool — paid once a year by role × tenure points.</span><span lang="vi">Quỹ nhân sự chính là quỹ ở §3B.3 — không phải quỹ thứ hai — trả 1 lần/năm theo điểm vai trò × thâm niên.</span></p>
+      </section>
+
+      <!-- ============ PART 4 ============ -->
+      <section class="part" id="part-4">
+        <div class="part-header"><span class="part-header__num">04</span><h2><span lang="en">Year-1 growth target</span><span lang="vi">Mục tiêu tăng trưởng năm 1</span></h2></div>
+
+        <blockquote><p><span lang="en">Not a fixed 20–50, not 100 either — growth gated by verification, landing around 60–80 by year-end.</span><span lang="vi">Không phải 20–50 cố định, cũng không phải 100 — mà là tăng trưởng theo cổng kiểm chứng, với đích cuối năm khoảng 60–80.</span></p></blockquote>
+
+        <p><span lang="en"><strong>100 from day one is too aggressive</strong> — if the real booking value turns out lower than assumed, Package-3 merchants are losing money at the exact committed volume, and you find out <em>after</em> signing 100 contracts at once. <strong>20–50 for the whole year is too timid</strong> — the team can serve up to 300 without a major step-change if the numbers confirm the model works.</span><span lang="vi"><strong>100 ngay từ đầu là quá liều</strong> — nếu giá trị/đơn thật thấp hơn dự kiến, merchant Gói 3 đang lỗ ở đúng mức volume cam kết, và bạn phát hiện ra <em>sau khi</em> đã ký 100 hợp đồng cùng lúc. <strong>20–50 cả năm là quá rụt rè</strong> — đội ngũ đủ sức phục vụ tới 300 mà không cần nhảy bậc lớn nếu số liệu xác nhận đúng hướng.</span></p>
+
+        <h3><span lang="en">Proposed path</span><span lang="vi">Lộ trình đề xuất</span></h3>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-item__rail"><div class="tl-item__dot"></div></div>
+            <div class="tl-item__when"><span lang="en">Mo. 1–4</span><span lang="vi">Th.1–4</span></div>
+            <div class="tl-item__body">
+              <p class="tl-item__title"><span lang="en">Hold at ~25–40 merchants</span><span lang="vi">Giữ ở ~25–40 merchant</span></p>
+              <p class="tl-item__desc"><span lang="en">Up from the current 10–15. The one goal of this phase: measure the 5 numbers in Part 3. Don't hire aggressively — use this phase to find the REAL team ratios instead of estimates.</span><span lang="vi">Từ mức 10–15 hiện tại. Mục tiêu duy nhất: đo 5 con số ở Phần 3. Không tuyển ồ ạt — dùng giai đoạn này để tìm tỷ lệ đội ngũ THẬT thay vì ước lượng.</span></p>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-item__rail"><div class="tl-item__dot"></div></div>
+            <div class="tl-item__when"><span lang="en">Mo. 5–8</span><span lang="vi">Th.5–8</span></div>
+            <div class="tl-item__body">
+              <p class="tl-item__title"><span lang="en">Conditional acceleration</span><span lang="vi">Tăng tốc có điều kiện</span></p>
+              <p class="tl-item__desc"><span lang="en">If the data confirms the model works → push to ~50–60. If numbers come in worse than expected → fix pricing/packaging BEFORE adding more merchants, not after.</span><span lang="vi">Nếu số liệu xác nhận mô hình sống được → tăng tốc lên ~50–60. Nếu lệch xấu → sửa giá/gói TRƯỚC khi tăng thêm merchant, không tăng trước rồi sửa sau.</span></p>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-item__rail"><div class="tl-item__dot"></div></div>
+            <div class="tl-item__when"><span lang="en">Mo. 9–12</span><span lang="vi">Th.9–12</span></div>
+            <div class="tl-item__body">
+              <p class="tl-item__title"><span lang="en">Close out Year 1</span><span lang="vi">Về đích năm 1</span></p>
+              <p class="tl-item__desc"><span lang="en">Grow to ~60–80 merchants by year-end, based on a now-verified formula.</span><span lang="vi">Tăng lên ~60–80 merchant cuối năm, dựa trên công thức đã kiểm chứng.</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout--finding">
+          <span class="callout__label"><span lang="en">A sensible Year-1 target: ~60–80 merchants</span><span lang="vi">Đích năm 1 hợp lý: ~60–80 merchant</span></span>
+          <p><span lang="en">Large enough to prove the model is genuinely profitable at scale (margin 61.3%–63.5%, still healthy even after fully loading salaries, bonuses, social insurance, and office costs), small enough that a wrong assumption doesn't get multiplied across hundreds of contracts at once.</span><span lang="vi">Đủ lớn để chứng minh mô hình có lãi thật ở quy mô (biên lợi nhuận 61,3%–63,5%, vẫn lành mạnh dù đã cộng đủ lương, thưởng, BHXH, chi phí văn phòng), đủ nhỏ để không nhân rộng một giả định sai lên hàng trăm hợp đồng cùng lúc.</span></p>
+        </div>
+
+        <div class="callout callout--warn">
+          <span class="callout__label"><span lang="en">The real limit isn't money</span><span lang="vi">Giới hạn thật không phải là tiền</span></span>
+          <p><span lang="en">Because the AU team is Founder-only until past ~100–150 merchants, growth speed is capped by how many sales+vetting visits one person can physically make in a day — not by capital or hireable headcount. The gate in months 1–4 gives the Founder time to measure <strong>his own real capacity limit</strong> before deciding when to make the first AU-team hire.</span><span lang="vi">Vì đội Úc = Founder solo cho đến khi vượt ~100–150 merchant, tốc độ tăng trưởng bị chặn bởi số lượt sales+thẩm định một người có thể tự đi trong ngày — không phải bởi vốn hay nhân sự thuê được. Gate ở tháng 1–4 cho Founder thời gian đo được <strong>giới hạn sức mình thật sự</strong> trước khi quyết định thời điểm thuê người đầu tiên cho đội Úc.</span></p>
+        </div>
+
+        <div class="callout callout--info">
+          <span class="callout__label"><span lang="en">The metric that decides pace</span><span lang="vi">Chỉ số quyết định tốc độ</span></span>
+          <p><code style="font-family:var(--font-mono);background:var(--bg-raised);padding:0.15em 0.5em;border-radius:4px;">human minutes per completed booking</code> — <span lang="en">if it declines through months 1–4, that's a safe signal to accelerate earlier than the framework above; if it holds flat, keep the pace regardless of growth pressure.</span><span lang="vi">nếu giảm dần trong Tháng 1–4, đó là tín hiệu an toàn để tăng tốc sớm hơn khung trên; nếu đứng yên, giữ nguyên tốc độ dù áp lực tăng trưởng có lớn đến đâu.</span></p>
+        </div>
+      </section>
+
+      <div class="footer-note">
+        <span><span lang="en">PeakGlowUp — Internal operating memo, v1.0</span><span lang="vi">PeakGlowUp — Tài liệu vận hành nội bộ, v1.0</span></span>
+        <span><span lang="en">Not for external commitments until the Part 3 numbers are verified</span><span lang="vi">Không dùng cam kết bên ngoài cho đến khi số liệu Phần 3 được kiểm chứng</span></span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var toggle = document.getElementById('tocToggle');
+    var sidebar = document.getElementById('sidebar');
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('is-open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    sidebar.querySelectorAll('[data-toc]').forEach(function (link) {
+      link.addEventListener('click', function () {
+        sidebar.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    var links = Array.prototype.slice.call(document.querySelectorAll('[data-toc]'));
+    var sections = links.map(function (l) { return document.querySelector(l.getAttribute('href')); });
+    function onScroll() {
+      var pos = window.scrollY + 140;
+      var activeIdx = 0;
+      for (var i = 0; i < sections.length; i++) {
+        if (sections[i] && sections[i].offsetTop <= pos) activeIdx = i;
+      }
+      links.forEach(function (l, i) { l.classList.toggle('is-active', i === activeIdx); });
+    }
+    document.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    var langEn = document.getElementById('langEn');
+    var langVi = document.getElementById('langVi');
+    var langMobile = document.getElementById('langToggleMobile');
+    // Pure-CSS visibility: setLang only flips the root attribute + button states.
+    // No per-node inline styles, so every element keeps its natural display type.
+    function setLang(lang) {
+      var isEn = lang === 'en';
+      document.documentElement.setAttribute('data-doclang', isEn ? 'en' : 'vi');
+      langEn.classList.toggle('is-active', isEn);
+      langVi.classList.toggle('is-active', !isEn);
+      langMobile.textContent = isEn ? 'VI' : 'EN';
+      try { localStorage.setItem('pgu-lang', lang); } catch (e) {}
+    }
+    langEn.addEventListener('click', function () { setLang('en'); });
+    langVi.addEventListener('click', function () { setLang('vi'); });
+    langMobile.addEventListener('click', function () {
+      setLang(document.documentElement.getAttribute('data-doclang') === 'vi' ? 'en' : 'vi');
+    });
+    var saved = 'en';
+    try { saved = localStorage.getItem('pgu-lang') || 'en'; } catch (e) {}
+    setLang(saved === 'vi' ? 'vi' : 'en');
+  })();
+</script>
+</html>
